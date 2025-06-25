@@ -24,8 +24,21 @@ bool zako_trustchain_add_intermediate(struct zako_trustchain* chain, X509* certi
 bool zako_trustchain_set_leaf_str(struct zako_trustchain* chain, char* certificate);
 bool zako_trustchain_set_leaf_der(struct zako_trustchain* chain, uint8_t* data, size_t len);
 bool zako_trustchain_set_leaf(struct zako_trustchain* chain, X509* certificate);
-bool zako_trustchain_verify(struct zako_trustchain* chain);
-bool zako_trustchain_verifykey(struct zako_trustchain* chain, EVP_PKEY* key);
+
+/**
+ * Verify certificate chain only.
+ * If verification passed, return code is zero.
+ * If verification failed, return codes are X509_V_ERR_<REASON>.
+ */
+int zako_trustchain_verify(struct zako_trustchain* chain);
+
+/**
+ * Verify certificate chain along with key.
+ * If verification passed, return code is zero.
+ * If public key mismatch, return code is -100.
+ * If verification failed, return codes are X509_V_ERR_<REASON>.
+ */
+int zako_trustchain_verifykey(struct zako_trustchain* chain, EVP_PKEY* key);
 
 void zako_trustchain_free(struct zako_trustchain* chain);
 

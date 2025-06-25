@@ -5,6 +5,7 @@
 #include "esignature/ed25519_sign.h"
 #include "esignature/elf_helper.h"
 #include "esignature/esignature.h"
+#include "esignature/cert_helper.h"
 
 #include <openssl/opensslv.h>
 #include <openssl/provider.h>
@@ -35,6 +36,7 @@ ZakoCommandHandler(root_sign) {
     char* key = ZakoParam("key");
     char* password = ZakoParam("password");
     char* output = ZakoParam("output");
+    char* pubkey_path = ZakoParam("pubkey");
 
     if (input == NULL) {
         ConsoleWrite("Usage: zakosign sign [options...] --key <private.key> <input.elf>");
@@ -56,9 +58,70 @@ ZakoCommandHandler(root_sign) {
         return 1;
     }
 
+    /* Gather certificate info */
     OSSL_PROVIDER* default_provider = OSSL_PROVIDER_load(NULL, "default");
+    struct zako_trustchain* chain = zako_trustchain_new();
 
+    {
+        struct zako_param* pr_curr = params;
+        bool leaf_set = false;
+        while (pr_curr != NULL) {
+            if (zako_streq(params->name, "certificate")) {
+                if (!leaf_set) {
+                    X509* cert = zako_x509_load_pem(params->value);
+
+                    if (cert == NULL) {
+                        exit(1);
+                    }
+
+                    zako_trustchain_set_leaf(chain, cert);
+                } else {
+                    X509* cert = zako_x509_load_pem(params->value);
+
+                    if (cert == NULL) {
+                        exit(1);
+                    }
+
+                    zako_trustchain_add_intermediate(chain, cert);
+                }
+            }
+
+            pr_curr = pr_curr->next;
+        }
+    }
+
+    /* Gather key info */
     EVP_PKEY* pkey = zako_load_private(key, password);
+    EVP_PKEY* pubkey;
+
+    if (pubkey_path != NULL) {
+        pubkey = zako_load_public(pubkey_path);
+
+        if (pubkey == NULL) {
+            pubkey = pkey;
+        }
+    } else {
+        pubkey = pkey;
+    }
+
+    /* Verify public key is valid */
+    if (chain->leaf != NULL) { /* Only verify when we have a certificate */
+        /* Do full certificate chain verify*/
+        int verification = zako_trustchain_verifykey(chain, pubkey);
+        if (verification != 0) {
+            ConsoleWriteFAIL("Certificate Error! Invalid certificate: ")
+
+            if (verification == -100) {
+                ConsoleWriteFAIL("  Public key mismatch (-100)");
+            } else {
+                ConsoleWriteFAIL("  %s (%i)", X509_verify_cert_error_string(verification), verification)
+            }
+            
+            exit(1);
+        }
+    }
+
+    /* Load input / output ELF file */
     Elf* target;
 
     if (output == NULL) {

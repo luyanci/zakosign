@@ -95,18 +95,19 @@ bool zako_trustchain_set_leaf(struct zako_trustchain* chain, X509* certificate) 
     chain->leaf = certificate;
 }
 
-bool zako_trustchain_verify(struct zako_trustchain* chain) {
+int zako_trustchain_verify(struct zako_trustchain* chain) {
     X509_STORE_CTX* ctx = X509_STORE_CTX_new();
     X509_STORE_CTX_init(ctx, chain->trusted_ca, chain->leaf, chain->cert_chain);
 
-    int result = X509_verify_cert(ctx);
+    X509_verify_cert(ctx);
+    int result = X509_STORE_CTX_get_error(ctx);
 
     X509_STORE_CTX_free(ctx);
 
-    return result == 1 ? true : false;
+    return result;
 }
 
-bool zako_trustchain_verifykey(struct zako_trustchain* chain, EVP_PKEY* key) {
+int zako_trustchain_verifykey(struct zako_trustchain* chain, EVP_PKEY* key) {
     EVP_PKEY* expected = X509_get_pubkey(chain->leaf);
 
     if (expected == NULL) {
@@ -114,7 +115,11 @@ bool zako_trustchain_verifykey(struct zako_trustchain* chain, EVP_PKEY* key) {
         return false;
     }
 
-    return zako_trustchain_verify(chain) && (EVP_PKEY_cmp(expected, key) == 1 ? true : false);
+    if (!EVP_PKEY_cmp(expected, key)) {
+        return -100;
+    }
+
+    return zako_trustchain_verify(chain);
 }
 
 void zako_trustchain_free(struct zako_trustchain* chain) {

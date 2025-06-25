@@ -18,21 +18,21 @@ static EVP_PKEY* zako_load_anykey(const char* path, char* password) {
     OSSL_DECODER_CTX* dctx = OSSL_DECODER_CTX_new_for_pkey(&key, NULL, NULL, NULL, EVP_PKEY_KEYPAIR, NULL, NULL);;
 
     if (dctx == NULL) {
-        ZakoOSSLPrintError("OpenSSL Failed to load private key: ");
+        ZakoOSSLPrintError("OpenSSL Failed to load private key: %s", path);
 
         return NULL;
     }
 
     if (password != NULL) {
         if (OSSL_DECODER_CTX_set_passphrase(dctx, (const unsigned char* )password, strlen(password)) != 1) {
-            ZakoOSSLPrintError("OpenSSL Failed to load private key: ");
+            ZakoOSSLPrintError("OpenSSL Failed to load private key: %s", path);
 
             goto done;
         }
     }
     
     if (OSSL_DECODER_from_fp(dctx, fkey) != 1) {
-        ZakoOSSLPrintError("OpenSSL Failed to load private key: ");
+        ZakoOSSLPrintError("OpenSSL Failed to load private key: %s", path);
 
         goto done;
     }
