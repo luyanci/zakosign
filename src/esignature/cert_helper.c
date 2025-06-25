@@ -65,7 +65,7 @@ struct zako_trustchain* zako_trustchain_new() {
 
     /* Add integrated CAs */
 
-    X509_STORE_add_cert(chain->trusted_ca, zako_x509_parse_pem(_binary_src_rootca_bin_start));
+    X509_STORE_add_cert(chain->trusted_ca, zako_x509_parse_pem((char*) _binary_src_rootca_bin_start));
 
     
     return chain;
@@ -73,26 +73,38 @@ struct zako_trustchain* zako_trustchain_new() {
 
 bool zako_trustchain_add_intermediate_str(struct zako_trustchain* chain, char* certificate) {
     sk_X509_push(chain->cert_chain, zako_x509_parse_pem(certificate));
+
+    return true;
 }
 
 bool zako_trustchain_add_intermediate_der(struct zako_trustchain* chain, uint8_t* data, size_t len) {
     sk_X509_push(chain->cert_chain, zako_x509_parse_der(data, len));
+
+    return true;
 }
 
 bool zako_trustchain_add_intermediate(struct zako_trustchain* chain, X509* certificate) {
     sk_X509_push(chain->cert_chain, certificate);
+
+    return true;
 }
 
 bool zako_trustchain_set_leaf_str(struct zako_trustchain* chain, char* certificate) {
     chain->leaf = zako_x509_parse_pem(certificate);
+
+    return true;
 }
 
 bool zako_trustchain_set_leaf_der(struct zako_trustchain* chain, uint8_t* data, size_t len) {
     chain->leaf = zako_x509_parse_der(data, len);
+    
+    return true;
 }
 
 bool zako_trustchain_set_leaf(struct zako_trustchain* chain, X509* certificate) {
     chain->leaf = certificate;
+
+    return true;
 }
 
 int zako_trustchain_verify(struct zako_trustchain* chain) {
