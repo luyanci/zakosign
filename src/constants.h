@@ -14,6 +14,7 @@
     extern const size_t _binary_src_##file##_size;
 
 ZakoDefineStrConstant(help_bin);
+ZakoDefineStrConstant(rootca_bin);
 
 
 

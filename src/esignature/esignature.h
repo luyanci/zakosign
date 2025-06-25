@@ -41,7 +41,7 @@ struct zako_keychain {
 
     /**
      * The id of ceritificate in certificate_store
-     * In order of that the cloest certificate to the CA comes the first.
+     * Leaf certificate comes the first, and does not contains any RootCA
      */
     uint8_t trustchain[ZAKO_MAX_CERITIFICATE_CHAIN];
 };

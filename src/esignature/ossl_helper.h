@@ -4,8 +4,8 @@
 #include "prelude.h"
 #include <openssl/err.h>
 
-#define ZakoOSSLPrintError(msg) { \
-        ConsoleWriteFAIL(msg); \
+#define ZakoOSSLPrintError(...) { \
+        ConsoleWriteFAIL(__VA_ARGS__); \
         unsigned long err_code; \
         char err_buf[1024]; \
         while ((err_code = ERR_get_error()) != 0) { \
