@@ -27,5 +27,7 @@ bool zako_trustchain_set_leaf(struct zako_trustchain* chain, X509* certificate);
 bool zako_trustchain_verify(struct zako_trustchain* chain);
 bool zako_trustchain_verifykey(struct zako_trustchain* chain, EVP_PKEY* key);
 
+void zako_trustchain_free(struct zako_trustchain* chain);
+
 
 #endif
