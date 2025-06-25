@@ -1,0 +1,112 @@
+#include "prelude.h"
+#include "param.h"
+#include "constants.h"
+
+#include "esignature/ed25519_sign.h"
+#include "esignature/elf_helper.h"
+#include "esignature/esignature.h"
+
+#include <openssl/opensslv.h>
+#include <openssl/provider.h>
+#include <libelf.h>
+#include <unistd.h>
+
+ZakoCommandHandler(root) {
+    ConsoleWrite("zakosign - A ELF signing tool");
+    ConsoleWrite("  -> OpenSSL\t%s", OPENSSL_VERSION_TEXT);
+    ConsoleWrite("  -> libelf\t%u", elf_version(EV_CURRENT));
+    ConsoleWrite("For help, please use 'zakosign help'")
+    return 0;
+}
+
+ZakoCommandHandler(root_help) {
+    ConsoleWrite("%s", _binary_src_help_bin_start);
+    return 0;
+}
+
+ZakoCommandHandler(root_verify) {
+    printf("yay it works! esign verify\n");
+
+    return 0;
+}
+
+ZakoCommandHandler(root_sign) {
+    char* input = ZakoParamAt(0);
+    char* key = ZakoParam("key");
+    char* password = ZakoParam("password");
+    char* output = ZakoParam("output");
+
+    if (input == NULL) {
+        ConsoleWrite("Usage: zakosign sign [options...] --key <private.key> <input.elf>");
+        return 1;
+    }
+
+    if (key == NULL) {
+        ConsoleWrite("Usage: zakosign sign [options...] --key <private.key> <input.elf>");
+        return 1;
+    }
+
+    if (access(input, F_OK) != 0) {
+        ConsoleWriteFAIL("%s does not exist!", input);
+        return 1;
+    }
+
+    if (access(key, F_OK) != 0) {
+        ConsoleWriteFAIL("%s does not exist!", key);
+        return 1;
+    }
+
+    OSSL_PROVIDER* default_provider = OSSL_PROVIDER_load(NULL, "default");
+
+    EVP_PKEY* pkey = zako_load_private(key, password);
+    Elf* target;
+
+    if (output == NULL) {
+        target = zako_elf_open_rw(input);
+    } else {
+        target = zako_elf_opencopy_rw(input, output);
+    }
+
+    struct elf_signing_buffer* buff = zako_elf_get_signing_buffer(target);
+    uint8_t* result = zako_allocate_safe(ZAKO_SIGNATURE_LENGTH);
+
+    ConsoleWriteOK("Signing...")
+
+    if (!zako_elf_sign(buff, pkey, result)) {
+        ConsoleWriteFAIL("Failed to sign input ELF file")
+        return 1;
+    }
+    
+    struct zako_esignature* esig = NULL;
+    // TODO
+
+    zako_elf_write_esig(target, esig, 0); // TODO zako_esign_size()
+
+    if (result == NULL) {
+        ConsoleWriteFAIL("Result is NULL")
+        return 1;
+    }
+
+    ConsoleWriteOK("Result: %s", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL));
+
+    free(result);
+    EVP_PKEY_free(pkey);
+    OSSL_PROVIDER_unload(default_provider);
+
+    return 0;
+}
+
+ZakoCommandHandler(root_keypair) {
+    ConsoleWrite("Usage: zakosign keypair <option> [args...]")
+
+    return 0;
+}
+
+int main(int argc, char* argv[]) {
+    ZakoNewCliApp(true);
+        ZakoCommand(root, help);
+        ZakoCommand(root, verify);
+        ZakoCommand(root, sign);
+        ZakoCommand(root, keypair);
+    ZakoRunCliApp();
+}

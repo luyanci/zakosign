@@ -1,0 +1,16 @@
+# Editor stuff
+compile_commands.json
+.vscode
+
+# binaries
+bin
+obj
+**/*.kpm
+**/*.ko
+**/*.zip
+
+# Sensitive files
+**/*.crt
+**/*.key
+**/*.pem
+**/*.pub
