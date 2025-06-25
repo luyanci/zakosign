@@ -133,6 +133,41 @@ bool zako_elf_sign(struct elf_signing_buffer* buff, EVP_PKEY* key, uint8_t* resu
     return true;
 }
 
+static bool _setshstrndx (Elf *elf, size_t ndx) {
+    printf ("setshstrndx: %zd\n", ndx);
+
+    GElf_Ehdr ehdr_mem;
+    GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
+    if (ehdr == NULL) {
+        return false;
+    }
+
+    if (ndx < SHN_LORESERVE) {
+        ehdr->e_shstrndx = ndx;
+    } else {
+        ehdr->e_shstrndx = SHN_XINDEX;
+        Elf_Scn *zscn = elf_getscn (elf, 0);
+        GElf_Shdr zshdr_mem;
+        GElf_Shdr *zshdr = gelf_getshdr (zscn, &zshdr_mem);
+
+        if (zshdr == NULL) {
+            return false;
+        }
+
+        zshdr->sh_link = ndx;
+
+        if (gelf_update_shdr (zscn, zshdr) == 0) {
+            return false;
+        }
+    }
+
+    if (gelf_update_ehdr (elf, ehdr) == 0) {
+        return false;
+    }
+
+    return true;
+}
+
 bool zako_elf_write_esig(Elf* elf, struct zako_esignature* esignature, size_t len) {
     /* Reference: elfutils/tests/addsections.c */
     /* We need to create a new shstr table at the end of the file
@@ -217,7 +252,7 @@ bool zako_elf_write_esig(Elf* elf, struct zako_esignature* esignature, size_t le
 
     gelf_update_shdr(zakosign_section, zakosign_header); /* We're done! */
 
-    setshstrndx(elf_ndxscn(strtbl_n_section)); /* Set our new string table */
+    _setshstrndx(elf, elf_ndxscn(strtbl_n_section)); /* Set our new string table */
     elf_update(elf, ELF_C_WRITE); /* We're ALL done! */
 
     return true;
