@@ -153,6 +153,7 @@ ZakoCommandHandler(root_sign) {
     ConsoleWriteOK("Result: %s", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL));
 
     free(result);
+    zako_trustchain_free(chain);
     EVP_PKEY_free(pkey);
     OSSL_PROVIDER_unload(default_provider);
 
