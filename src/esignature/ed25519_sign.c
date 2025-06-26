@@ -99,6 +99,14 @@ EVP_PKEY* zako_parse_public(const char* data) {
     return zako_parse_anykey(data, NULL);
 }
 
+EVP_PKEY* zako_parse_public_raw(uint8_t* data) {
+    return EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, NULL, data, ZAKO_PUBKEY_LENGTH);
+}
+
+bool zako_get_public_raw(EVP_PKEY* key, uint8_t* data) {
+    size_t len = ZAKO_PUBKEY_LENGTH;
+    return EVP_PKEY_get_raw_public_key(key, data, &len);
+}
 
 bool zako_sign_buffer(EVP_PKEY* key, uint8_t* buffer, size_t len, uint8_t* signature) {
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();

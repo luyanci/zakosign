@@ -135,7 +135,7 @@ int zako_trustchain_verifykey(struct zako_trustchain* chain, EVP_PKEY* key) {
 }
 
 void zako_trustchain_free(struct zako_trustchain* chain) {
-    sk_X509_free(chain->cert_chain);
+    sk_X509_pop_free(chain->cert_chain, X509_free);
     X509_free(chain->leaf);
     X509_STORE_free(chain->trusted_ca);
     free(chain);

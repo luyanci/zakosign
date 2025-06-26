@@ -18,6 +18,8 @@ EVP_PKEY* zako_parse_public(const char* data);
 EVP_PKEY* zako_load_public(const char* path);
 EVP_PKEY* zako_parse_private(const char* data, char* password);
 EVP_PKEY* zako_load_private(const char* path, char* password);
+EVP_PKEY* zako_parse_public_raw(uint8_t* data);
+bool zako_get_public_raw(EVP_PKEY* key, uint8_t* data);
 
 /**
  * Sign len bytes of buffer with private key, and write the output to result.

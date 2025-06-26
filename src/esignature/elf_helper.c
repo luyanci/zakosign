@@ -133,9 +133,7 @@ bool zako_elf_sign(struct elf_signing_buffer* buff, EVP_PKEY* key, uint8_t* resu
     return true;
 }
 
-static bool _setshstrndx (Elf *elf, size_t ndx) {
-    printf ("setshstrndx: %zd\n", ndx);
-
+bool _setshstrndx (Elf *elf, size_t ndx) {
     GElf_Ehdr ehdr_mem;
     GElf_Ehdr *ehdr = gelf_getehdr (elf, &ehdr_mem);
     if (ehdr == NULL) {
@@ -249,11 +247,17 @@ bool zako_elf_write_esig(Elf* elf, struct zako_esignature* esignature, size_t le
     strtbl_n_header->sh_entsize = 0;
     strtbl_n_header->sh_size = shstrtbl_new_size;
     strtbl_n_header->sh_name = shstrtbl_name_backup;
-
-    gelf_update_shdr(zakosign_section, zakosign_header); /* We're done! */
+ 
+    gelf_update_shdr(strtbl_n_section, strtbl_n_header); /* We're done! */
 
     _setshstrndx(elf, elf_ndxscn(strtbl_n_section)); /* Set our new string table */
-    elf_update(elf, ELF_C_WRITE); /* We're ALL done! */
+    int64_t err = elf_update(elf, ELF_C_WRITE); /* We're ALL done! */
+    
+    if (err < 0) {
+        ConsoleWriteFAIL("Failed to write target file: %s", elf_errmsg(err));
+
+        return false;
+    }
 
     return true;
 }
@@ -266,7 +270,7 @@ static Elf* zako_elf_openfd_rw(int fd) {
 }
 
 Elf* zako_elf_open_rw(char* path) {
-    int fd = open(path, O_RDONLY);
+    int fd = open(path, O_RDWR);
     if (fd < 0) {
         ConsoleWriteFAIL("Failed to open %s", path);
         return NULL;
@@ -303,7 +307,7 @@ Elf* zako_elf_opencopy_rw(char* path, char* new) {
         
     size = stat.st_size;
         
-    fd_out = open(new, O_CREAT | O_WRONLY | O_TRUNC, 0744);
+    fd_out = open(new, O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (fd_out == -1) {
         ConsoleWriteFAIL("Failed to open %s", new);
         return NULL;
@@ -327,6 +331,7 @@ Elf* zako_elf_opencopy_rw(char* path, char* new) {
     } while (size > 0 && ret > 0);
         
     close(fd_in);
+    // close(fd_out); /* idk why zako_elf_openfd_rw(fd_out) won't work... */
 
     return zako_elf_openfd_rw(fd_out);
 }

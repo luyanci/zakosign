@@ -58,6 +58,8 @@ ZakoCommandHandler(root_sign) {
         return 1;
     }
 
+    struct zako_esign_context* es_ctx = zako_esign_new();
+
     /* Gather certificate info */
     OSSL_PROVIDER* default_provider = OSSL_PROVIDER_load(NULL, "default");
     struct zako_trustchain* chain = zako_trustchain_new();
@@ -74,6 +76,7 @@ ZakoCommandHandler(root_sign) {
                         exit(1);
                     }
 
+                    zako_esign_add_keycert(es_ctx, zako_esign_add_certificate(es_ctx, cert));
                     zako_trustchain_set_leaf(chain, cert);
                 } else {
                     X509* cert = zako_x509_load_pem(params->value);
@@ -82,6 +85,7 @@ ZakoCommandHandler(root_sign) {
                         exit(1);
                     }
 
+                    zako_esign_add_keycert(es_ctx, zako_esign_add_certificate(es_ctx, cert));
                     zako_trustchain_add_intermediate(chain, cert);
                 }
             }
@@ -121,6 +125,8 @@ ZakoCommandHandler(root_sign) {
         }
     }
 
+    zako_esign_set_publickey(es_ctx, pubkey);
+
     /* Load input / output ELF file */
     Elf* target;
 
@@ -128,6 +134,10 @@ ZakoCommandHandler(root_sign) {
         target = zako_elf_open_rw(input);
     } else {
         target = zako_elf_opencopy_rw(input, output);
+    }
+
+    if (target == NULL) {
+        exit(1);
     }
 
     struct elf_signing_buffer* buff = zako_elf_get_signing_buffer(target);
@@ -139,23 +149,32 @@ ZakoCommandHandler(root_sign) {
         ConsoleWriteFAIL("Failed to sign input ELF file")
         return 1;
     }
-    
-    struct zako_esignature* esig = NULL;
-    // TODO
-
-    zako_elf_write_esig(target, esig, 0); // TODO zako_esign_size()
 
     if (result == NULL) {
-        ConsoleWriteFAIL("Result is NULL")
+        ConsoleWriteFAIL("Failed to sign input ELF file (null buffer)")
         return 1;
     }
 
-    ConsoleWriteOK("Result: %s", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL));
+    ConsoleWriteOK("ELF Signature created: %s", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL));
+    
+    zako_esign_set_signature(es_ctx, result);
+    
+    size_t len = 0;
+    struct zako_esignature* esig = zako_esign_create(es_ctx, &len);
 
+    ConsoleWriteOK("Writing .zakosign section...")
+    if (!zako_elf_write_esig(target, esig, len)) {
+        exit(1);
+    }
+
+    zako_elf_close(target);
     free(result);
+    free(esig);
     zako_trustchain_free(chain);
     EVP_PKEY_free(pkey);
     OSSL_PROVIDER_unload(default_provider);
+
+    ConsoleWriteOK("Done")
 
     return 0;
 }

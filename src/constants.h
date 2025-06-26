@@ -13,8 +13,8 @@
     extern const char* _binary_src_##file##_end; \
     extern const size_t _binary_src_##file##_size;
 
-ZakoDefineStrConstant(help_bin);
-ZakoDefineStrConstant(rootca_bin);
+ZakoDefineConstant(help_bin);
+ZakoDefineConstant(rootca_bin);
 
 
 

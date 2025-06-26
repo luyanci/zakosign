@@ -2,6 +2,7 @@
 #define ZAKOSIGN_HEADER_ESIGNATURE_H
 
 #include "prelude.h"
+#include "cert_helper.h"
 
 #define ZAKO_SIGNATURE_LENGTH 64
 #define ZAKO_PUBKEY_LENGTH 32
@@ -9,6 +10,7 @@
 #define ZAKO_MAX_CERITIFICATE_CHAIN 3
 
 #define ZAKO_ESIGNATURE_MAGIC 0x7a616b6f7369676eull
+#define ZAKO_ESIGNATURE_VERSION 1
 
 struct zako_der_certificate {
     /**
@@ -42,6 +44,8 @@ struct zako_keychain {
     /**
      * The id of ceritificate in certificate_store
      * Leaf certificate comes the first, and does not contains any RootCA
+     * 
+     * 255 means empty
      */
     uint8_t trustchain[ZAKO_MAX_CERITIFICATE_CHAIN];
 };
@@ -129,12 +133,36 @@ struct zako_esign_context {
     /**
      * Quick lookup table for certificate_store
      */
-    struct zako_certificate_store* kstbl[sizeof(uint8_t)];
+    struct zako_der_certificate* cstbl[sizeof(uint8_t)];
+
+    uint8_t cert_count;
 
     /**
      * Internal buffer
      */
     struct zako_esignature* esig_buf;
+
+    /**
+     * The signing key, including signature chain
+     */
+    struct zako_keychain key;
+
+    /**
+     * [Optional]
+     * If ts presents and is valid, this esignature will remain valid unless
+     *      1. The time when this signature was created was prior than ceritificate issue date, or
+     *      2. The time when this signature was created was later than ceritificate issue date, or
+     *      3. The ceritificate chain contains a revoked ceritificate.
+     * 
+     * By having a Timestamping Authority issued proof of time,
+     * this signature can remain valid forever.
+     */
+    struct zako_timestamp ts;
+
+    /**
+     * Signature of data
+     */
+    uint8_t signature[ZAKO_SIGNATURE_LENGTH];
 };
 
 struct zako_esign_context* zako_esign_new();
@@ -142,27 +170,36 @@ struct zako_esign_context* zako_esign_new();
 /**
  * Adds a certificate to certificate store and returns the id of the input certificate
  * ZakoRootCA is built in, and you don't have to include it.
+ * 
+ * Capacity is capped at 200 certificates. Upon exceed, 255 is returned.
+ * If X509 to DER failed, 254 is returned. 
  */
-uint8_t zako_esign_add_certificate(struct zako_esign_context* esign);
+uint8_t zako_esign_add_certificate(struct zako_esign_context* ctx, X509* certificate);
+
+/**
+ * Add certificate to trust chain of the public key.
+ * Call zako_esign_add_certificate to obtain an ID for your certificate.
+ */
+void zako_esign_add_keycert(struct zako_esign_context* ctx, uint8_t id);
 
 /**
  * Set public key
  */
-void zako_esign_set_publickey(struct zako_esign_context* esign);
+void zako_esign_set_publickey(struct zako_esign_context* ctx, EVP_PKEY* key);
 
 /**
  * Set signature
  */
-void zako_esign_set_signature(struct zako_esign_context* esign, uint8_t signature);
+void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* signature);
 
 /**
  * Set signing time
  */
-void zako_esign_set_timestamp(struct zako_esign_context* esign, uint64_t ts);
+void zako_esign_set_timestamp(struct zako_esign_context* ctx, uint64_t ts);
 
 /**
  * esignature will be created and esign will be free-ed
  */
-struct zako_esignature* zako_esign_create(struct zako_esign_context* esign);
+struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t* len);
 
 #endif
