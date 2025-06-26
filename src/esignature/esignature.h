@@ -133,7 +133,7 @@ struct zako_esign_context {
     /**
      * Quick lookup table for certificate_store
      */
-    struct zako_der_certificate* cstbl[sizeof(uint8_t)];
+    struct zako_der_certificate* cstbl[200];
 
     uint8_t cert_count;
 

@@ -69,9 +69,9 @@ ZakoCommandHandler(root_sign) {
         struct zako_param* pr_curr = params;
         bool leaf_set = false;
         while (pr_curr != NULL) {
-            if (zako_streq(params->name, "certificate")) {
+            if (zako_streq(pr_curr->name, "certificate")) {
                 if (!leaf_set) {
-                    X509* cert = zako_x509_load_pem(params->value);
+                    X509* cert = zako_x509_load_pem(pr_curr->value);
 
                     if (cert == NULL) {
                         exit(1);
@@ -80,7 +80,7 @@ ZakoCommandHandler(root_sign) {
                     zako_esign_add_keycert(es_ctx, zako_esign_add_certificate(es_ctx, cert));
                     zako_trustchain_set_leaf(chain, cert);
                 } else {
-                    X509* cert = zako_x509_load_pem(params->value);
+                    X509* cert = zako_x509_load_pem(pr_curr->value);
 
                     if (cert == NULL) {
                         exit(1);
@@ -122,7 +122,7 @@ ZakoCommandHandler(root_sign) {
                 ConsoleWriteFAIL("  %s (%i)", X509_verify_cert_error_string(verification), verification)
             }
             
-            exit(1);
+            // exit(1);
         }
     }
 

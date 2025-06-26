@@ -36,7 +36,9 @@ uint8_t zako_esign_add_certificate(struct zako_esign_context* ctx, X509* certifi
         return 254;
     }
 
-    uint8_t id = ctx->cert_count ++;
+    uint8_t id = ctx->cert_count;
+    ctx->cert_count += 1;
+
     struct zako_der_certificate* fin_cert = (struct zako_der_certificate*) zako_allocate_safe(sizeof(struct zako_der_certificate) + der_len);
 
     fin_cert->len = der_len;
@@ -65,7 +67,7 @@ void zako_esign_add_keycert(struct zako_esign_context* ctx, uint8_t id) {
 }
 
 void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* signature) {
-    memcpy(ctx->signature, signature, ZAKO_SIGNATURE_LENGTH);
+    memcpy(&ctx->signature, signature, ZAKO_SIGNATURE_LENGTH);
 }
 
 void zako_esign_set_timestamp(struct zako_esign_context* ctx, uint64_t ts) {
@@ -77,7 +79,7 @@ struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t
 
     for (uint8_t i = 0; i < ctx->cert_count; i ++) {
         if (ctx->cstbl[i] != NULL) {
-            esig_sz += ctx->cstbl[i]->len;
+            esig_sz += sizeof(struct zako_der_certificate) + ctx->cstbl[i]->len;
         }
     }
 
@@ -89,15 +91,15 @@ struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t
 
     memcpy(&esignature->key, &ctx->key, sizeof(struct zako_keychain));
     memcpy(&esignature->ts, &ctx->ts, sizeof(struct zako_timestamp));
-    memcpy(&esignature->signature, &ctx->signature, sizeof(ZAKO_SIGNATURE_LENGTH));
+    memcpy(&esignature->signature, &ctx->signature, ZAKO_SIGNATURE_LENGTH);
 
     esignature->certificate_store.len = ctx->cert_count;
 
-    size_t off = sizeof(struct zako_esign_context);
+    size_t off = (size_t) &esignature->certificate_store.data;
     for (uint8_t i = 0; i < ctx->cert_count; i ++) {
         if (ctx->cstbl[i] != NULL) {
             size_t sz = sizeof(struct zako_der_certificate) + ctx->cstbl[i]->len;
-            memcpy(ApplyOffset(esignature, +off), ctx->cstbl[i], sz);
+            memcpy((void*) off, ctx->cstbl[i], sz);
 
             off += sz;
         }
