@@ -2,6 +2,3 @@
 	path = openssl
 	url = https://github.com/openssl/openssl.git
 	branch = openssl-3.5
-[submodule "elfutils"]
-	path = elfutils
-	url = git://sourceware.org/git/elfutils.git

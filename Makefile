@@ -34,11 +34,8 @@ endif
 
 LDFLAGS := \
 	-L/usr/lib \
-	-lzstd \
-	-lz \
 	-lcrypto \
 	-lssl \
-	elfutils/out/$(ARCH)/lib/libelf.a \
 	$(LDFLAGS)
 
 #	openssl/out/$(ARCH)/lib64/libcrypto.a \

@@ -6,7 +6,6 @@
 #include "esignature.h"
 
 #include <openssl/evp.h>
-#include <libelf.h>
 #include <gelf.h>
 #include <elf.h>
 #include <unistd.h>

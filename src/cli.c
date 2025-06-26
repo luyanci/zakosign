@@ -9,13 +9,11 @@
 
 #include <openssl/opensslv.h>
 #include <openssl/provider.h>
-#include <libelf.h>
 #include <unistd.h>
 
 ZakoCommandHandler(root) {
     ConsoleWrite("zakosign - A ELF signing tool");
     ConsoleWrite("  -> OpenSSL\t%s", OPENSSL_VERSION_TEXT);
-    ConsoleWrite("  -> libelf\t%u", elf_version(EV_CURRENT));
     ConsoleWrite("For help, please use 'zakosign help'")
     return 0;
 }
