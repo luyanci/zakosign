@@ -105,9 +105,7 @@ EVP_PKEY* zako_parse_public_raw(uint8_t* data) {
 
 bool zako_get_public_raw(EVP_PKEY* key, uint8_t* data) {
     size_t len = ZAKO_PUBKEY_LENGTH;
-    EVP_PKEY_get_raw_public_key(key, data, &len);
-
-    return true;
+    return EVP_PKEY_get_raw_public_key(key, data, &len);
 }
 
 bool zako_sign_buffer(EVP_PKEY* key, uint8_t* buffer, size_t len, uint8_t* signature) {
