@@ -37,6 +37,7 @@ ZakoCommandHandler(root_sign) {
     char* password = ZakoParam("password");
     char* output = ZakoParam("output");
     char* pubkey_path = ZakoParam("pubkey");
+    bool overwrite = ZakoFlagParam("force") || ZakoFlag('f');
 
     if (input == NULL) {
         ConsoleWrite("Usage: zakosign sign [options...] --key <private.key> <input.elf>");
@@ -128,30 +129,23 @@ ZakoCommandHandler(root_sign) {
     zako_esign_set_publickey(es_ctx, pubkey);
 
     /* Load input / output ELF file */
-    Elf* target;
+    int target;
 
     if (output == NULL) {
         target = zako_elf_open_rw(input);
     } else {
-        target = zako_elf_opencopy_rw(input, output);
+        target = zako_elf_opencopy_rw(input, output, overwrite);
     }
 
-    if (target == NULL) {
+    if (target == -1) {
         exit(1);
     }
-
-    struct elf_signing_buffer* buff = zako_elf_get_signing_buffer(target);
-    uint8_t* result = zako_allocate_safe(ZAKO_SIGNATURE_LENGTH);
-
+    
     ConsoleWriteOK("Signing...")
 
-    if (!zako_elf_sign(buff, pkey, result)) {
+    uint8_t result[ZAKO_SIGNATURE_LENGTH] = { 0 };
+    if (!zako_elf_sign(target, pkey, &result)) {
         ConsoleWriteFAIL("Failed to sign input ELF file")
-        return 1;
-    }
-
-    if (result == NULL) {
-        ConsoleWriteFAIL("Failed to sign input ELF file (null buffer)")
         return 1;
     }
 
@@ -167,8 +161,7 @@ ZakoCommandHandler(root_sign) {
         exit(1);
     }
 
-    zako_elf_close(target);
-    free(result);
+    close(target);
     free(esig);
     zako_trustchain_free(chain);
     EVP_PKEY_free(pkey);
