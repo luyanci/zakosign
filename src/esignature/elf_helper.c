@@ -253,6 +253,8 @@ bool zako_elf_write_esig(Elf* elf, struct zako_esignature* esignature, size_t le
     _setshstrndx(elf, elf_ndxscn(strtbl_n_section)); /* Set our new string table */
     int64_t err = elf_update(elf, ELF_C_WRITE); /* We're ALL done! */
     
+    free(shstrtbl_new_d);
+
     if (err < 0) {
         ConsoleWriteFAIL("Failed to write target file: %s", elf_errmsg(err));
 
