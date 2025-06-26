@@ -20,8 +20,7 @@ TARGET_NAME_DYNAMIC := zakosign
 
 ifeq ($(DEBUG_MODE),1)
 	CFLAGS := -DBUILD_DEBUG=1 -O1 -g $(CFLAGS)
-	LDFLAGS := -O1 -g $(LDFLAGS) -fsanitize=address 
-# -fsanitize=address 
+	LDFLAGS := -O1 -g $(LDFLAGS)
 else
 	CFLAGS := $(CFLAGS) -O3
 	LDFLAGS := $(LDFLAGS) -O3
