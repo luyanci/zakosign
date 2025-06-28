@@ -77,6 +77,8 @@ ZakoCommandHandler(root_sign) {
 
                     zako_esign_add_keycert(es_ctx, zako_esign_add_certificate(es_ctx, cert));
                     zako_trustchain_set_leaf(chain, cert);
+
+                    leaf_set = true;
                 } else {
                     X509* cert = zako_x509_load_pem(pr_curr->value);
 
