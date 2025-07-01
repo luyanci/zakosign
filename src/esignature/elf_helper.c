@@ -107,3 +107,33 @@ int zako_elf_opencopy_rw(char* path, char* new, bool overwrite) {
 
     return fd_out;
 }
+
+uint32_t zako_elf_verify_esig(int fd, uint32_t flags) {
+    struct stat st;
+    fstat(fd, &st);
+
+    void* buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    
+    if (buffer == NULL) {
+        return ZAKO_ELFV_MMAP_FAILED;
+    }
+
+    void* buff_end = ApplyOffset(buffer, +(st.st_size));
+    uint64_t* r_magic = (uint64_t*) ApplyOffset(buff_end, -8);
+    
+    if (*r_magic != ZAKO_ESIGNATURE_MAGIC) {
+        return ZAKO_ELFV_INVALID_HEADER;
+    }
+
+    uint64_t* sz = (uint64_t*) ApplyOffset(buff_end, -16);
+    if (*sz == 0 || *sz > st.st_size) {
+        return ZAKO_ELFV_INVALID_HEADER;
+    }
+
+    struct zako_esignature* esign_buf = (struct zako_esignature*) ApplyOffset(sz, +*sz);
+
+    uint32_t result = zako_esign_verify(esign_buf, buffer, *sz, flags);
+
+    munmap(buffer, st.st_size);
+    return result;
+}

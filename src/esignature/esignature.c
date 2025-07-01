@@ -109,3 +109,97 @@ struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t
 
     return esignature;
 }
+
+static uint32_t zako_keychain_verify(struct zako_keychain* kc, struct zako_der_certificate* certtbl) {
+    struct zako_trustchain* chain = zako_trustchain_new();
+    struct zako_der_certificate leaf = certtbl[kc->trustchain[0]];
+    struct zako_der_certificate l3 = certtbl[kc->trustchain[1]];
+    struct zako_der_certificate l2 = certtbl[kc->trustchain[2]];
+
+    if (kc->trustchain[0] == 255) {
+        return true;
+    }
+
+    zako_trustchain_set_leaf_der(chain, leaf.data, leaf.len);
+
+    if (l3.len != 0) {
+        zako_trustchain_add_intermediate_der(chain, l3.data, l3.len);
+    }
+
+    if (l2.len != 0) {
+        zako_trustchain_add_intermediate_der(chain, l2.data, l2.len);
+    }
+
+    int result = zako_trustchain_verify(chain);
+    zako_trustchain_free(chain);
+
+    switch (result) {
+        case X509_V_ERR_CERT_HAS_EXPIRED:
+            return ZAKO_ESV_CERTIFICATE_EXPIRED;
+        case X509_V_ERR_CERT_UNTRUSTED:
+            return ZAKO_ESV_UNTRUST_CERTIFICATE_CHAIN;
+        default:
+            if (result != X509_V_OK) {
+                return ZAKO_ESV_CERTIFICATE_ERROR;
+            }
+
+            EVP_PKEY* expected = X509_get_pubkey(chain->leaf);
+            if (!EVP_PKEY_cmp(expected, kc->public_key)) {
+                return ZAKO_ESV_CERTKEY_MISMATCH;
+            }
+
+            EVP_PKEY_free(expected);
+            return 0;
+    }
+}
+
+uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t len, uint32_t flags) {
+    if (esig->magic != ZAKO_ESIGNATURE_MAGIC) {
+        return ZAKO_ESV_INVALID_HEADER;
+    }
+
+    if (esig->version != ZAKO_ESIGNATURE_VERSION) {
+        if (esig->version > ZAKO_ESIGNATURE_VERSION) {
+            return ZAKO_ESV_UNSUPPORTED_VERSION;
+        } else {
+            return ZAKO_ESV_OUTDATED_VERSION;
+        }
+    }
+
+    uint32_t result = 0;
+
+    OnFlag(flags, ZAKO_ESV_INTEGRITY_ONLY) {
+        goto verify_integrity;
+    }
+
+    /* Verify Ceritificates */
+
+    uint8_t cert_count = esig->certificate_store.len;
+    struct zako_der_certificate* cstbl[200] = { 0 };
+
+    size_t off = (size_t) &esig->certificate_store.data;
+    for (uint8_t i = 0; i < cert_count; i ++) {
+        struct zako_der_certificate* cert = ApplyOffset(esig, +off);
+        cstbl[i] = cert;
+
+        off += sizeof(struct zako_der_certificate) + cert->len;
+    }
+
+    result += zako_keychain_verify(&esig->key, &cstbl);
+
+    OnNotFlag(flags, ZAKO_ESV_STRICT_MODE) {
+        // todo tsa
+    }
+
+verify_integrity:
+    EVP_PKEY* pubkey = zako_parse_public_raw(esig->key.public_key);
+    if (zako_verify_buffer(pubkey, buff, len, esig->signature)) {
+        result += ZAKO_ESV_VERFICATION_FAILED;
+    }
+
+    EVP_PKEY_free(pubkey);
+
+    return result;
+
+}
+

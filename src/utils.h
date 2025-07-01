@@ -9,6 +9,10 @@
 
 #define ApplyOffset(ptr, off) (void*)(((size_t) ptr) off)
 
+#define OnFlag(var, fl) if ((var & fl) > 0)
+#define OnNotFlag(var, fl) if ((var & fl) == 0)
+
+
 /**
  * Allocate with malloc but in a safe way.
  */

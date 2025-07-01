@@ -12,6 +12,23 @@
 #define ZAKO_ESIGNATURE_MAGIC 0x7a616b6f7369676eull
 #define ZAKO_ESIGNATURE_VERSION 1
 
+#define ZAKO_ESV_STRICT_MODE    (1 << 0)
+#define ZAKO_ESV_INTEGRITY_ONLY (1 << 1)
+
+#define ZAKO_ESV_IMPORTANT_ERROR (1 << 31)
+
+#define ZAKO_ESV_INVALID_HEADER            (1 <<  0)
+#define ZAKO_ESV_UNSUPPORTED_VERSION       (1 <<  2) + ZAKO_ESV_IMPORTANT_ERROR
+#define ZAKO_ESV_OUTDATED_VERSION          (1 <<  3) + ZAKO_ESV_IMPORTANT_ERROR
+#define ZAKO_ESV_MISSING_CERTIFICATE       (1 <<  4)
+#define ZAKO_ESV_UNTRUST_CERTIFICATE_CHAIN (1 <<  5) + ZAKO_ESV_IMPORTANT_ERROR
+#define ZAKO_ESV_MISSING_TIMESTAMP         (1 <<  6)
+#define ZAKO_ESV_UNTRUSTED_TIMESTAMP       (1 <<  7)
+#define ZAKO_ESV_VERFICATION_FAILED        (1 <<  8) + ZAKO_ESV_IMPORTANT_ERROR
+#define ZAKO_ESV_CERTIFICATE_EXPIRED       (1 <<  9)
+#define ZAKO_ESV_CERTIFICATE_ERROR         (1 <<  9)
+#define ZAKO_ESV_CERTKEY_MISMATCH          (1 << 10) + ZAKO_ESV_IMPORTANT_ERROR
+
 struct zako_der_certificate {
     /**
      * The id of this ceritificate
@@ -201,5 +218,7 @@ void zako_esign_set_timestamp(struct zako_esign_context* ctx, uint64_t ts);
  * esignature will be created and esign will be free-ed
  */
 struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t* len);
+
+uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t len, uint32_t flags);
 
 #endif
