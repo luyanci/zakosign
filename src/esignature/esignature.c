@@ -144,11 +144,13 @@ static uint32_t zako_keychain_verify(struct zako_keychain* kc, struct zako_der_c
             }
 
             EVP_PKEY* expected = X509_get_pubkey(chain->leaf);
-            if (!EVP_PKEY_cmp(expected, kc->public_key)) {
+            EVP_PKEY* got = zako_parse_public_raw(kc->public_key);
+            if (!EVP_PKEY_cmp(expected, got)) {
                 return ZAKO_ESV_CERTKEY_MISMATCH;
             }
 
             EVP_PKEY_free(expected);
+            EVP_PKEY_free(got);
             return 0;
     }
 }
