@@ -144,6 +144,8 @@ ZakoCommandHandler(root_sign) {
     ConsoleWriteOK("Signing...")
 
     uint8_t result[ZAKO_SIGNATURE_LENGTH] = { 0 };
+    /* Signature is a known size, so we can safely ignore this */
+#pragma clang diagnostic ignored "-Wincompatible-pointer-types"
     if (!zako_file_sign(target, pkey, &result)) {
         ConsoleWriteFAIL("Failed to sign input ELF file")
         return 1;

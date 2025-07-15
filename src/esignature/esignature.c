@@ -53,6 +53,8 @@ uint8_t zako_esign_add_certificate(struct zako_esign_context* ctx, X509* certifi
 }
 
 void zako_esign_set_publickey(struct zako_esign_context* ctx, EVP_PKEY* key) {
+    /* Public key size is a known size, so we can safely ignore this */
+#pragma clang diagnostic ignored "-Wincompatible-pointer-types"
     zako_get_public_raw(key, &ctx->key.public_key);
 }
 
