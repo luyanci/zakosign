@@ -38,12 +38,7 @@ LDFLAGS := \
 	-lssl \
 	$(LDFLAGS)
 
-#	openssl/out/$(ARCH)/lib64/libcrypto.a \
-	openssl/out/$(ARCH)/lib64/libssl.a \
-
 CFLAGS := \
-	-Ielfutils/out/$(ARCH)/include \
-	-Iopenssl/out/$(ARCH)/include \
 	$(CFLAGS)
 
 TARGET_DYNAMIC := $(BIN_PATH)/$(TARGET_NAME_DYNAMIC)
