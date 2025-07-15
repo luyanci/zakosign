@@ -167,6 +167,7 @@ uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t l
     }
 
     uint32_t result = 0;
+    EVP_PKEY* pubkey = NULL;
 
     OnFlag(flags, ZAKO_ESV_INTEGRITY_ONLY) {
         goto verify_integrity;
@@ -192,7 +193,7 @@ uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t l
     }
 
 verify_integrity:
-    EVP_PKEY* pubkey = zako_parse_public_raw(esig->key.public_key);
+    pubkey = zako_parse_public_raw(esig->key.public_key);
     if (zako_verify_buffer(pubkey, buff, len, esig->signature)) {
         result += ZAKO_ESV_VERFICATION_FAILED;
     }
