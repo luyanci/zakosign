@@ -10,7 +10,7 @@ SRC_PATH := src
 DBG_PATH := debug
 
 # flags
-CFLAGS := -I$(SRC_PATH) -Wno-deprecated-declarations -c $(CFLAGS)
+CFLAGS := -I$(SRC_PATH) -Wno-deprecated-declarations -Werror -c $(CFLAGS)
 LDFLAGS := -Wall -fPIC $(LDFLAGS) -fuse-ld=lld
 
 ARCH ?= amd64
