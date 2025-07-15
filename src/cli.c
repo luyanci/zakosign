@@ -3,7 +3,7 @@
 #include "constants.h"
 
 #include "esignature/ed25519_sign.h"
-#include "esignature/elf_helper.h"
+#include "esignature/file_helper.h"
 #include "esignature/esignature.h"
 #include "esignature/cert_helper.h"
 
@@ -132,9 +132,9 @@ ZakoCommandHandler(root_sign) {
     int target;
 
     if (output == NULL) {
-        target = zako_elf_open_rw(input);
+        target = zako_file_open_rw(input);
     } else {
-        target = zako_elf_opencopy_rw(input, output, overwrite);
+        target = zako_file_opencopy_rw(input, output, overwrite);
     }
 
     if (target == -1) {
@@ -144,7 +144,7 @@ ZakoCommandHandler(root_sign) {
     ConsoleWriteOK("Signing...")
 
     uint8_t result[ZAKO_SIGNATURE_LENGTH] = { 0 };
-    if (!zako_elf_sign(target, pkey, &result)) {
+    if (!zako_file_sign(target, pkey, &result)) {
         ConsoleWriteFAIL("Failed to sign input ELF file")
         return 1;
     }
@@ -156,8 +156,8 @@ ZakoCommandHandler(root_sign) {
     size_t len = 0;
     struct zako_esignature* esig = zako_esign_create(es_ctx, &len);
 
-    ConsoleWriteOK("Writing .zakosign section...")
-    if (!zako_elf_write_esig(target, esig, len)) {
+    ConsoleWriteOK("Writing E-Signature info...")
+    if (!zako_file_write_esig(target, esig, len)) {
         exit(1);
     }
 
