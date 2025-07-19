@@ -72,9 +72,12 @@ uint32_t zako_file_verify_esig(int fd, uint32_t flags) {
         return ZAKO_FV_INVALID_HEADER;
     }
 
-    struct zako_esignature* esign_buf = (struct zako_esignature*) ApplyOffset(sz, +*sz);
+    struct zako_esignature* esign_buf = (struct zako_esignature*) ApplyOffset(sz, -*sz);
 
-    uint32_t result = zako_esign_verify(esign_buf, buffer, *sz, flags);
+    /* Entire file footer is ESignature + ESignatureSize + ESignatureMagic 
+         which is *sz + sizeof(sz) + 8 = *sz + 16
+       So, original file buffer will be FileSize - *sz - 16 */
+    uint32_t result = zako_esign_verify(esign_buf, buffer, st.st_size - *sz - 16, flags);
 
     munmap(buffer, st.st_size);
     return result;
