@@ -13,7 +13,8 @@
 
 ZakoCommandHandler(root) {
     ConsoleWrite("zakosign - A ELF signing tool");
-    ConsoleWrite("  -> OpenSSL\t%s", OPENSSL_VERSION_TEXT);
+    ConsoleWrite("  -> OpenSSL %s", OPENSSL_VERSION_TEXT);
+    ConsoleWrite("  -> Zako E-Signature %i", ZAKO_ESIGNATURE_VERSION);
     ConsoleWrite("For help, please use 'zakosign help'")
     return 0;
 }
@@ -24,9 +25,48 @@ ZakoCommandHandler(root_help) {
 }
 
 ZakoCommandHandler(root_verify) {
-    printf("yay it works! esign verify\n");
+    char* input = ZakoParamAt(0);
+    bool strict_mode = ZakoFlagParam("strict");
+    bool integrity_only = ZakoFlagParam("integrity");
 
-    return 0;
+    if (input == NULL) {
+        ConsoleWrite("Usage: zakosign verify [options...] <input.elf>")
+    }
+
+    if (access(input, F_OK) != 0) {
+        ConsoleWriteFAIL("%s does not exist!", input);
+        return 1;
+    }
+
+    int fd = zako_file_open_rw(input);
+    uint32_t results = zako_file_verify_esig(fd, 
+                            (strict_mode ? ZAKO_ESV_STRICT_MODE : 0) + 
+                            (integrity_only ? ZAKO_ESV_INTEGRITY_ONLY : 0));
+
+    if (results != 0) {
+        OnFlag(results, ZAKO_ESV_IMPORTANT_ERROR) {
+            ConsoleWriteFAIL("Verification failed!");
+        } else {
+            ConsoleWriteFAIL("Verification partially passed");
+        }
+    } else {
+        ConsoleWriteOK("Verification passed!");
+        goto exit;
+    }
+
+    for (uint8_t i = 0; i < sizeof(uint32_t); i ++) {
+        if ((results & (1 << i)) == 0) {
+            continue;
+        }
+
+        const char* message = zako_esign_verrcidx2str(i);
+        ConsoleWriteFAIL("%s", message);
+    }
+
+exit:
+    close(fd);
+
+    return results;
 }
 
 ZakoCommandHandler(root_sign) {
@@ -147,18 +187,20 @@ ZakoCommandHandler(root_sign) {
     /* Signature is a known size, so we can safely ignore this */
 #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
     if (!zako_file_sign(target, pkey, &result)) {
-        ConsoleWriteFAIL("Failed to sign input ELF file")
+        ConsoleWriteFAIL("Failed to sign input file")
         return 1;
     }
+    struct stat st;
+    fstat(target, &st);
 
-    ConsoleWriteOK("ELF Signature created: %s", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL));
+    ConsoleWriteOK("File Signature created: %s (%li bytes digested)", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL), st.st_size);
     
     zako_esign_set_signature(es_ctx, result);
     
     size_t len = 0;
     struct zako_esignature* esig = zako_esign_create(es_ctx, &len);
 
-    ConsoleWriteOK("Writing E-Signature info...")
+    ConsoleWriteOK("Writing E-Signature info (%lu bytes)...", len);
     if (!zako_file_write_esig(target, esig, len)) {
         exit(1);
     }

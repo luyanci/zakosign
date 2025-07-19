@@ -1,6 +1,40 @@
 #include "esignature.h"
 #include "ed25519_sign.h"
 
+static char* error_messages[] = {
+    "Invalid E-Signature header structure",
+    "Unsupported E-Signature version",
+    "E-Signature is using an unsupported, outdated version",
+    "Signing key does not have a valid certificate",
+    "Signing key certificate chain contains invalid/untrusted key",
+    "E-Signature does not have a signing date",
+    "E-Signature signing date cannot be trusted",
+    "E-Signature verification failed",
+    "A/Some certificate in trust chain has expired",
+    "Error while verifing certificate trust chain",
+    "Leaf certificate mismatch with provided public key",
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    "One or multiple CRITICAL error occured",
+};
+
 struct zako_esign_context* zako_esign_new() {
     struct zako_esign_context* ctx = ZakoAllocateStruct(zako_esign_context);
 
@@ -206,5 +240,13 @@ verify_integrity:
 
     return result;
 
+}
+
+const char* zako_esign_verrcidx2str(uint8_t idx) {
+    if (idx > 31) {
+        return NULL;
+    }
+
+    return error_messages[idx];
 }
 
