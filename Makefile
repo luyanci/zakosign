@@ -13,7 +13,7 @@ DBG_PATH := debug
 CFLAGS := -I$(SRC_PATH) -Wno-deprecated-declarations -Werror -c $(CFLAGS)
 LDFLAGS := -Wall -fPIC $(LDFLAGS) -fuse-ld=lld
 
-ARCH ?= amd64
+ARCH ?= $(shell uname -m | sed 's/aarch64/aarch64/;s/arm64/aarch64/;s/x86_64/amd64/')
 
 # compile macros
 TARGET_NAME_DYNAMIC := zakosign
