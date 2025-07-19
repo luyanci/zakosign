@@ -1,6 +1,10 @@
 
 #include "param.h"
 
+static inline bool zako_i8_inrange(char num, char min, char max) {
+    return num >= min && num <= max;
+}
+
 struct zako_command* zako_new_command(struct zako_command* command, const char* cmd, zako_cmd_handler handler) {
     struct zako_command* new_cmd = ZakoAllocateStruct(zako_command);
     new_cmd->callback = handler;
