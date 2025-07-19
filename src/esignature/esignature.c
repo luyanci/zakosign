@@ -119,7 +119,7 @@ static uint32_t zako_keychain_verify(struct zako_keychain* kc, struct zako_der_c
     struct zako_der_certificate l2 = certtbl[kc->trustchain[2]];
 
     if (kc->trustchain[0] == 255) {
-        return true;
+        return 0;
     }
 
     zako_trustchain_set_leaf_der(chain, leaf.data, leaf.len);
