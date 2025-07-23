@@ -216,8 +216,64 @@ ZakoCommandHandler(root_sign) {
     return 0;
 }
 
-ZakoCommandHandler(root_keypair) {
-    ConsoleWrite("Usage: zakosign keypair <option> [args...]")
+ZakoCommandHandler(root_key) {
+    ConsoleWrite("Usage: zakosign key <option> [args...]")
+
+    return 0;
+}
+
+ZakoCommandHandler(root_key_new) {
+    char* foutput = ZakoParamAt(0);
+
+    if (foutput == NULL) {
+        ConsoleWrite("Usage: zakosign key new <file>");
+
+        return 1;
+    }
+
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL);;
+    EVP_PKEY *pkey = NULL;
+
+    if (EVP_PKEY_keygen_init(ctx) <= 0) {
+        ZakoOSSLPrintError("Failed to generate signing key!");
+
+        EVP_PKEY_CTX_free(ctx);
+        return 1;
+    }
+
+    if (EVP_PKEY_generate(ctx, &pkey) <= 0) {
+        ZakoOSSLPrintError("Failed to generate signing key!");
+
+        EVP_PKEY_CTX_free(ctx);
+        return 1;
+    }
+
+    BIO* out = BIO_new_file(foutput, "w+");
+
+    if (out == NULL) {
+        ZakoOSSLPrintError("Failed to create and open output file: %s", foutput);
+    }
+
+    if (PEM_write_bio_PrivateKey(out, pkey, NULL, NULL, 0, NULL, NULL) <= 0) {
+        ZakoOSSLPrintError("Failed to write signing private key!");
+    }
+    
+    BIO_flush(out);
+    BIO_free(out);
+
+    BIO* pubout = BIO_new(BIO_s_mem());
+    if (PEM_write_bio_PUBKEY(out, pkey) <= 0) {
+        ZakoOSSLPrintError("Failed to write signing public key!");
+    }
+    
+    BUF_MEM* buffer;
+    BIO_get_mem_ptr(pubout, &buffer);
+
+    ConsoleWrite("%.*s", (int32_t)buffer->length, buffer->data)
+
+
+    EVP_PKEY_free(pkey);
+    EVP_PKEY_CTX_free(ctx);
 
     return 0;
 }
@@ -227,6 +283,7 @@ int main(int argc, char* argv[]) {
         ZakoCommand(root, help);
         ZakoCommand(root, verify);
         ZakoCommand(root, sign);
-        ZakoCommand(root, keypair);
+        ZakoCommand(root, key);
+            ZakoCommand(root_key, new);
     ZakoRunCliApp();
 }
