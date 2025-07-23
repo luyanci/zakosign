@@ -136,6 +136,11 @@ struct zako_esignature {
     struct zako_timestamp ts;
 
     /**
+     * Buffer SHA256 hash
+     */
+    uint8_t hash[ZAKO_HASH_LENGTH];
+
+    /**
      * Signature of data
      */
     uint8_t signature[ZAKO_SIGNATURE_LENGTH];
@@ -177,6 +182,11 @@ struct zako_esign_context {
     struct zako_timestamp ts;
 
     /**
+     * Buffer SHA256 hash
+     */
+    uint8_t hash[ZAKO_HASH_LENGTH];
+
+    /**
      * Signature of data
      */
     uint8_t signature[ZAKO_SIGNATURE_LENGTH];
@@ -207,7 +217,7 @@ void zako_esign_set_publickey(struct zako_esign_context* ctx, EVP_PKEY* key);
 /**
  * Set signature
  */
-void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* signature);
+void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* hash, uint8_t* signature);
 
 /**
  * Set signing time

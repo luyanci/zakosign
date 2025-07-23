@@ -1,5 +1,6 @@
 #include "esignature.h"
 #include "ed25519_sign.h"
+#include "hasher.h"
 
 static char* error_messages[] = {
     "Invalid E-Signature header structure",
@@ -102,8 +103,9 @@ void zako_esign_add_keycert(struct zako_esign_context* ctx, uint8_t id) {
     }
 }
 
-void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* signature) {
+void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* hash, uint8_t* signature) {
     memcpy(&ctx->signature, signature, ZAKO_SIGNATURE_LENGTH);
+    memcpy(&ctx->hash, hash, ZAKO_HASH_LENGTH);
 }
 
 void zako_esign_set_timestamp(struct zako_esign_context* ctx, uint64_t ts) {
@@ -232,7 +234,12 @@ uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t l
 
 verify_integrity:
     pubkey = zako_parse_public_raw(esig->key.public_key);
-    if (zako_verify_buffer(pubkey, buff, len, esig->signature) != 1) {
+    
+    if (zako_hash_verify(buff, len, esig->hash) != 1) {
+        result |= ZAKO_ESV_VERFICATION_FAILED;
+    }
+
+    if (zako_verify_buffer(pubkey, esig->hash, ZAKO_HASH_LENGTH, esig->signature) != 1) {
         result |= ZAKO_ESV_VERFICATION_FAILED;
     }
 

@@ -184,9 +184,10 @@ ZakoCommandHandler(root_sign) {
     ConsoleWriteOK("Signing...")
 
     uint8_t result[ZAKO_SIGNATURE_LENGTH] = { 0 };
+    uint8_t hash[ZAKO_HASH_LENGTH] = { 0 };
     /* Signature is a known size, so we can safely ignore this */
 #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
-    if (!zako_file_sign(target, pkey, &result)) {
+    if (!zako_file_sign(target, pkey, &result, &hash)) {
         ConsoleWriteFAIL("Failed to sign input file")
         return 1;
     }
@@ -195,7 +196,7 @@ ZakoCommandHandler(root_sign) {
 
     ConsoleWriteOK("File Signature created: %s (%li bytes digested)", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL), st.st_size);
     
-    zako_esign_set_signature(es_ctx, result);
+    zako_esign_set_signature(es_ctx, hash, result);
     
     size_t len = 0;
     struct zako_esignature* esig = zako_esign_create(es_ctx, &len);

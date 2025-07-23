@@ -14,7 +14,7 @@
 #define ZAKO_FV_MMAP_FAILED    (1 << 16)
 #define ZAKO_FV_INVALID_HEADER (1 << 17)
 
-bool zako_file_sign(int fd, EVP_PKEY* key, uint8_t* result);
+bool zako_file_sign(int fd, EVP_PKEY* key, uint8_t* result, uint8_t* hash);
 bool zako_file_write_esig(int fd, struct zako_esignature* esignature, size_t len);
 
 /**

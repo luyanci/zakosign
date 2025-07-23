@@ -18,6 +18,11 @@ struct zako_hash_stream {
 bool zako_hash_buffer(uint8_t* buffer, size_t len, uint8_t* result);
 
 /**
+ * Verify buffer with given hash
+ */
+bool zako_hash_verify(uint8_t* buffer, size_t len, uint8_t* sha256);
+
+/**
  * Create new hash stream.
  */
 struct zako_hash_stream* zako_hash_stream_new();

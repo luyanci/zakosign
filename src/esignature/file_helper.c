@@ -6,14 +6,16 @@
 
 #include "ed25519_sign.h"
 
-bool zako_file_sign(int fd, EVP_PKEY* key, uint8_t* result) {
+bool zako_file_sign(int fd, EVP_PKEY* key, uint8_t* result, uint8_t* hash) {
 
     struct stat st;
     fstat(fd, &st);
 
     void* buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    
+    zako_hash_buffer(buffer, st.st_size, hash);
 
-    if (!zako_sign_buffer(key, buffer, st.st_size, result)) {
+    if (!zako_sign_buffer(key, hash, ZAKO_HASH_LENGTH, result)) {
         ZakoOSSLPrintError("Failed to sign buffer!");
     }
 

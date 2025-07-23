@@ -23,6 +23,15 @@ bool zako_hash_buffer(uint8_t* buffer, size_t len, uint8_t* result) {
     return true;
 }
 
+bool zako_hash_verify(uint8_t* buffer, size_t len, uint8_t* sha256) {
+    uint8_t expected[SHA256_DIGEST_LENGTH] = { 0 };
+    if (zako_hash_buffer(buffer, len, expected) != 1) {
+        return false;
+    }
+
+    return memcmp(expected, sha256, SHA256_DIGEST_LENGTH) == 0;
+}
+
 
 struct zako_hash_stream* zako_hash_stream_new() {
     struct zako_hash_stream* stream = ZakoAllocateStruct(zako_hash_stream);
