@@ -42,14 +42,14 @@ struct zako_der_certificate {
     uint8_t data[];
 };
 
-struct zako_certificate_store {
+struct zako_custom_field {
     /**
-     * Total amount of ceritificates in this certificate_store
-     * 
-     * It won't exceed 255
+     * Non-duplicate field identifier
      */
-    uint8_t len;
-    struct zako_der_certificate data[];
+    uint8_t id;
+    size_t sz;
+
+    uint8_t data[];
 };
 
 /**
@@ -146,9 +146,22 @@ struct zako_esignature {
     uint8_t signature[ZAKO_SIGNATURE_LENGTH];
 
     /**
-     * Contains all the ceritificates used
+     * # of certificates
      */
-    struct zako_certificate_store certificate_store;
+    uint8_t cert_sz;
+
+    /**
+     * # of extra fields
+     */
+    uint8_t extra_fields_sz;
+
+    /**
+     * Extra data for certificate store and extra fields
+     * Certificats are always stored before extra fields
+     * 
+     * Valid types are either zako_der_certificate or zako_custom_field
+     */
+    uint8_t data[];
 };
 
 struct zako_esign_context {
@@ -190,6 +203,14 @@ struct zako_esign_context {
      * Signature of data
      */
     uint8_t signature[ZAKO_SIGNATURE_LENGTH];
+
+    /**
+     * Total amount of ceritificates in this certificate_store
+     * 
+     * It won't exceed 255
+     */
+    uint8_t len;
+    
 };
 
 struct zako_esign_context* zako_esign_new();

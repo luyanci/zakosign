@@ -131,9 +131,9 @@ struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t
     memcpy(&esignature->ts, &ctx->ts, sizeof(struct zako_timestamp));
     memcpy(&esignature->signature, &ctx->signature, ZAKO_SIGNATURE_LENGTH);
 
-    esignature->certificate_store.len = ctx->cert_count;
+    esignature->cert_sz = ctx->cert_count;
 
-    size_t off = (size_t) &esignature->certificate_store.data;
+    size_t off = (size_t) &esignature->data;
     for (uint8_t i = 0; i < ctx->cert_count; i ++) {
         if (ctx->cstbl[i] != NULL) {
             size_t sz = sizeof(struct zako_der_certificate) + ctx->cstbl[i]->len;
@@ -215,10 +215,10 @@ uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t l
 
     /* Verify Ceritificates */
 
-    uint8_t cert_count = esig->certificate_store.len;
+    uint8_t cert_count = esig->cert_sz;
     struct zako_der_certificate* cstbl[200] = { 0 };
 
-    size_t off = (size_t) &esig->certificate_store.data;
+    size_t off = (size_t) &esig->data;
     for (uint8_t i = 0; i < cert_count; i ++) {
         struct zako_der_certificate* cert = ApplyOffset(esig, +off);
         cstbl[i] = cert;
