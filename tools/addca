@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+if ! [ -f "$1" ]; then
+    echo "error: no input"
+    exit 1
+fi
+
+NAME=$(basename $1 | cut -f 1 -d '.')
+TEMPLATE="X509_STORE_add_cert(chain->trusted_ca, zako_x509_parse_pem((char*) ZakoConstant($NAME)));"
+TEMPLATE_DEF="ZakoDefineConstant($NAME)"
+
+cp $1 src/$NAME.bin
+
+sed -i "/Add integrated CAs/a $TEMPLATE"  src/esignature/cert_helper.c
+sed -i "/Add integrated CAs/a $TEMPLATE_DEF"  src/constants.h

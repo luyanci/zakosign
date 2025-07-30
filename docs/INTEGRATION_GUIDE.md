@@ -90,6 +90,31 @@ Below is a table of all error codes.
 Errors that are related to inconsistency are considered as unexpected modifications,
 and thus, they are considered as important errors that will fail the verification entirely.
 
+You should compile your own copy of zakosign for verification because
+zakosign does not ship any root CAs, so if you wish to use certificate
+related features, you must compile your own copy of zakosign.
+
+### Compiling zakosign
+
+Make sure you have `make` and almost any llvm toolchain installed.
+You can use NDK if you wish to target android.
+
+Then, clone this repository and run `make` in the root directory to compile.
+Don't forget to set CC environment variable before you start.
+GNU C Compiler, a.k.a. `gcc`, is not supported. 
+Do not report any encountered issues.
+
+To add your root CA, run the following command:
+
+```
+tools/addca /path/to/rootca.crt
+```
+
+**ONLY X509 FORMAT IS SUPPORTED**
+
+Pro tip: Don't forget to recompile.
+
+
 ## User-end design notes
 
 - Manager should give developer at least one month migration window.
