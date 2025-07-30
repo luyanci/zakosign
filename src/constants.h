@@ -17,8 +17,8 @@
 #define ZakoConstantSz(file) const_##file##_sz
 
 ZakoDefineConstant(help);
-ZakoDefineConstant(rootca);
 
+/* Add integrated CAs */
 
 
 #endif
