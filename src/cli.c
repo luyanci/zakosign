@@ -20,7 +20,7 @@ ZakoCommandHandler(root) {
 }
 
 ZakoCommandHandler(root_help) {
-    ConsoleWrite("%s", _binary_src_help_bin_start);
+    ConsoleWrite("%s", ZakoConstant(help));
     return 0;
 }
 

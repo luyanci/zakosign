@@ -9,6 +9,9 @@ obj
 **/*.ko
 **/*.zip
 
+# Intermediate files
+generated-intermediates
+
 # Sensitive files
 **/*.crt
 **/*.key

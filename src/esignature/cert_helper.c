@@ -65,7 +65,7 @@ struct zako_trustchain* zako_trustchain_new() {
 
     /* Add integrated CAs */
 
-    X509_STORE_add_cert(chain->trusted_ca, zako_x509_parse_pem((char*) _binary_src_rootca_bin_start));
+    X509_STORE_add_cert(chain->trusted_ca, zako_x509_parse_pem((char*) ZakoConstant(rootca)));
 
     
     return chain;

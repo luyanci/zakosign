@@ -13,8 +13,6 @@ DBG_PATH := debug
 CFLAGS := -I$(SRC_PATH) -Wno-deprecated-declarations -Werror -c $(CFLAGS)
 LDFLAGS := -Wall -fPIC $(LDFLAGS) -fuse-ld=lld
 
-ARCH ?= $(shell uname -m | sed 's/aarch64/aarch64/;s/arm64/aarch64/;s/x86_64/amd64/')
-
 # compile macros
 TARGET_NAME_DYNAMIC := zakosign
 
@@ -24,12 +22,6 @@ ifeq ($(DEBUG_MODE),1)
 else
 	CFLAGS := $(CFLAGS) -O3
 	LDFLAGS := $(LDFLAGS) -O3
-endif
-
-ifeq ($(ARCH),amd64) 
-	OBJCOPY_ARCH := x86-64
-else
-	OBJCOPY_ARCH := aarch64
 endif
 
 LDFLAGS := \
@@ -65,7 +57,7 @@ default: makedir all
 
 $(TARGET_DYNAMIC): $(OBJ)
 	$(info $(NULL)  ELF     $(TARGET_DYNAMIC))
-	@$(CC) -o $@ -lzstd  $(OBJ) $(LDFLAGS)
+	@$(CC) -o $@ $(OBJ) $(LDFLAGS)
 
 $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c
 	$(info $(NULL)  CC      $< $@)
@@ -73,24 +65,17 @@ $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c
 
 $(OBJ_PATH)/bin_%.o: $(SRC_PATH)/%.bin
 	$(info $(NULL)  BIN2OBJ $< $@)
-	@$(OBJCOPY) --input-target binary \
-	           --output-target=elf64-$(OBJCOPY_ARCH) \
-	           --binary-architecture=$(OBJCOPY_ARCH) \
-			   $< $@
+	@CC=$(CC) tools/bin2obj $< $@ "$(CFLAGS)"
 
 # phony rules
 .PHONY: envinfo
 envinfo:
 
-ifeq ($(OS),Windows_NT)
-	$(info Platform: Windows $())
-else
-	$(info Platform: $(shell uname -a))
-endif
-	$(info CC: $(CC))
-	$(info CFlags : $(CFLAGS))
-	$(info LDFlags: $(LDFLAGS))
-	$(info Targets: $(TARGET_DYNAMIC)) 
+$(info Platform: $(shell uname -a))
+$(info CC: $(CC))
+$(info CFlags : $(CFLAGS))
+$(info LDFlags: $(LDFLAGS))
+$(info Targets: $(TARGET_DYNAMIC)) 
 
 .PHONY: makedir
 makedir:

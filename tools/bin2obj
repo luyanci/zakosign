@@ -1,0 +1,56 @@
+
+#!/usr/bin/env bash
+
+INTERMEDIATE_DIR="generated-intermediates"
+
+function gen_asm() {
+    local BIN_F=$1
+    local SZ=$(stat -c %s $BIN_F)
+    local NAME=$(basename $BIN_F | cut -f 1 -d '.')
+
+    echo ".global const_${NAME}"
+    echo ".global const_${NAME}_end"
+    echo ".global const_${NAME}_sz"
+    echo "const_${NAME}:"
+    echo ".incbin \"$BIN_F\""
+    echo "const_${NAME}_end:"
+    echo "const_${NAME}_sz:"
+    echo ".int $SZ"
+}
+
+if [ "$1" = "" ]; then
+    echo "error: no input"
+    exit 1
+fi
+
+if ! [ -f "$1" ]; then
+    echo "error: input file missing"
+    exit 1
+fi
+
+if [ "$2" = "" ]; then
+    echo "error: no output"
+    exit 1
+fi
+
+if [ -f "$2" ]; then
+    rm -f $2
+fi
+
+if ! [ -d "$INTERMEDIATE_DIR" ]; then
+    mkdir $INTERMEDIATE_DIR
+fi
+
+if [ "$CC" = "" ]; then
+    CC=clang
+fi
+
+NAME=$(basename $1 | cut -f 1 -d '.')
+INTERMEDIATE="$INTERMEDIATE_DIR/$NAME.S"
+
+if [ -f "$INTERMEDIATE" ]; then
+    rm -f "$INTERMEDIATE"
+fi
+
+gen_asm $1 >> $INTERMEDIATE
+$CC $INTERMEDIATE -c -o "$2" $3
