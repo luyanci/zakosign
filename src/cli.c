@@ -45,9 +45,9 @@ ZakoCommandHandler(root_verify) {
 
     if (results != 0) {
         OnFlag(results, ZAKO_ESV_IMPORTANT_ERROR) {
-            ConsoleWriteFAIL("Verification failed!");
+            ConsoleWriteFAIL("Verification failed! (%u)", results);
         } else {
-            ConsoleWriteFAIL("Verification partially passed");
+            ConsoleWriteFAIL("Verification partially passed. (%u)", results);
         }
     } else {
         ConsoleWriteOK("Verification passed!");
