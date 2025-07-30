@@ -1,6 +1,7 @@
 #include "esignature.h"
 #include "ed25519_sign.h"
 #include "hasher.h"
+#include <time.h>
 
 static char* error_messages[] = {
     "Invalid E-Signature header structure",
@@ -45,6 +46,8 @@ struct zako_esign_context* zako_esign_new() {
 
     ctx->esig_buf.magic = ZAKO_ESIGNATURE_MAGIC;
     ctx->esig_buf.version = ZAKO_ESIGNATURE_VERSION;
+
+    ctx->esig_buf.created_at = (uint64_t) time(NULL);
     
     return ctx;
 }
@@ -109,10 +112,6 @@ void zako_esign_add_keycert(struct zako_esign_context* ctx, uint8_t id) {
 void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* hash, uint8_t* signature) {
     memcpy(&ctx->esig_buf.signature, signature, ZAKO_SIGNATURE_LENGTH);
     memcpy(&ctx->esig_buf.hash, hash, ZAKO_HASH_LENGTH);
-}
-
-void zako_esign_set_timestamp(struct zako_esign_context* ctx, uint64_t ts) {
-    ctx->esig_buf.ts.timestamp = ts;
 }
 
 struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t* len) {
@@ -225,10 +224,6 @@ uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t l
     }
 
     result |= zako_keychain_verify(&esig->key, &cstbl);
-
-    OnNotFlag(flags, ZAKO_ESV_STRICT_MODE) {
-        // todo tsa
-    }
 
 verify_integrity:
     pubkey = zako_parse_public_raw(esig->key.public_key);
