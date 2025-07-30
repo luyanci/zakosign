@@ -33,11 +33,23 @@ LDFLAGS := \
 CFLAGS := \
 	$(CFLAGS)
 
-TARGET_DYNAMIC := $(BIN_PATH)/$(TARGET_NAME_DYNAMIC)
+TARGET_DYNAMIC := $(BIN_PATH)/lib$(TARGET_NAME_DYNAMIC).so
+TARGET_CLI := $(BIN_PATH)/$(TARGET_NAME_DYNAMIC)
 
 # src files & obj files
-SRC := $(shell find $(SRC_PATH) -name '*.c')
-OBJ := $(patsubst $(SRC_PATH)/%.c, $(OBJ_PATH)/%.o, $(SRC))
+SRC := utils.c \
+	esignature/hasher.c \
+	esignature/file_helper.c \
+	esignature/esignature.c \
+	esignature/ed25519_sign.c \
+	esignature/cert_helper.c
+
+SRC_CLI := $(SRC) \
+	cli.c \
+	param.c
+
+OBJ := $(patsubst %.c, $(OBJ_PATH)/%.o, $(SRC))
+OBJ_CLI := $(patsubst %.c, $(OBJ_PATH)/%.o, $(SRC_CLI))
 
 # Find all .bin files in SRC_PATH and its subdirectories
 BIN_FILES := $(shell find $(SRC_PATH) -name '*.bin')
@@ -46,10 +58,12 @@ BIN_OBJ := $(patsubst $(SRC_PATH)/%.bin, $(OBJ_PATH)/bin_%.o, $(BIN_FILES))
 
 # Add BIN_OBJ to the main OBJ list to ensure they are compiled and linked
 OBJ += $(BIN_OBJ)
+OBJ_CLI += $(BIN_OBJ)
 
 # clean files list
-DISTCLEAN_LIST := $(OBJ)
+DISTCLEAN_LIST := $(OBJ_CLI)
 CLEAN_LIST := $(TARGET_DYNAMIC) \
+			  $(TARGET_CLI) \
 			  $(DISTCLEAN_LIST)
 
 # default rule
@@ -57,7 +71,11 @@ default: makedir all
 
 $(TARGET_DYNAMIC): $(OBJ)
 	$(info $(NULL)  ELF     $(TARGET_DYNAMIC))
-	@$(CC) -o $@ $(OBJ) $(LDFLAGS)
+	@$(CC) -shared -o $@ $(OBJ) $(LDFLAGS)
+
+$(TARGET_CLI): $(OBJ_CLI)
+	$(info $(NULL)  ELF     $(TARGET_CLI))
+	@$(CC) -o $@ $(OBJ_CLI) $(LDFLAGS)
 
 $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c
 	$(info $(NULL)  CC      $< $@)
@@ -83,7 +101,7 @@ makedir:
 	@mkdir -p $(sort $(dir $(OBJ))) $(BIN_PATH)
 
 .PHONY: all
-all: envinfo $(TARGET_DYNAMIC) 
+all: envinfo $(TARGET_DYNAMIC) $(TARGET_CLI)
 
 .PHONY: clean
 clean:
