@@ -166,51 +166,26 @@ struct zako_esignature {
 
 struct zako_esign_context {
     /**
-     * Quick lookup table for certificate_store
+     * Certificate store
      */
-    struct zako_der_certificate* cstbl[200];
+    struct zako_der_certificate* certs[200];
 
+    /**
+     * # of certificates in certificate store
+     */
     uint8_t cert_count;
+
+    struct zako_custom_field* extra_fields[256];
+
+    /**
+     * # of custom fields in extra fields
+     */
+    uint8_t extra_fields_count;
 
     /**
      * Internal buffer
      */
-    struct zako_esignature* esig_buf;
-
-    /**
-     * The signing key, including signature chain
-     */
-    struct zako_keychain key;
-
-    /**
-     * [Optional]
-     * If ts presents and is valid, this esignature will remain valid unless
-     *      1. The time when this signature was created was prior than ceritificate issue date, or
-     *      2. The time when this signature was created was later than ceritificate issue date, or
-     *      3. The ceritificate chain contains a revoked ceritificate.
-     * 
-     * By having a Timestamping Authority issued proof of time,
-     * this signature can remain valid forever.
-     */
-    struct zako_timestamp ts;
-
-    /**
-     * Buffer SHA256 hash
-     */
-    uint8_t hash[ZAKO_HASH_LENGTH];
-
-    /**
-     * Signature of data
-     */
-    uint8_t signature[ZAKO_SIGNATURE_LENGTH];
-
-    /**
-     * Total amount of ceritificates in this certificate_store
-     * 
-     * It won't exceed 255
-     */
-    uint8_t len;
-    
+    struct zako_esignature esig_buf;
 };
 
 struct zako_esign_context* zako_esign_new();

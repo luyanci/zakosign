@@ -39,17 +39,20 @@ static char* error_messages[] = {
 struct zako_esign_context* zako_esign_new() {
     struct zako_esign_context* ctx = ZakoAllocateStruct(zako_esign_context);
 
-    ctx->key.trustchain[0] = 255; /* L4 */
-    ctx->key.trustchain[1] = 255; /* L3 */
-    ctx->key.trustchain[2] = 255; /* L2 */
+    ctx->esig_buf.key.trustchain[0] = 255; /* L4 */
+    ctx->esig_buf.key.trustchain[1] = 255; /* L3 */
+    ctx->esig_buf.key.trustchain[2] = 255; /* L2 */
+
+    ctx->esig_buf.magic = ZAKO_ESIGNATURE_MAGIC;
+    ctx->esig_buf.version = ZAKO_ESIGNATURE_VERSION;
     
     return ctx;
 }
 
 static void zako_esign_free(struct zako_esign_context* ctx) {
     for (uint8_t i = 0; i < ctx->cert_count; i ++) {
-        if (ctx->cstbl[i] != NULL) {
-            free(ctx->cstbl[i]);
+        if (ctx->certs[i] != NULL) {
+            free(ctx->certs[i]);
         }
     }
 
@@ -80,7 +83,7 @@ uint8_t zako_esign_add_certificate(struct zako_esign_context* ctx, X509* certifi
     fin_cert->id = id;
     memcpy(&fin_cert->data, der_data, der_len);
 
-    ctx->cstbl[id] = fin_cert;
+    ctx->certs[id] = fin_cert;
 
     BIO_free(bio);
 
@@ -90,54 +93,49 @@ uint8_t zako_esign_add_certificate(struct zako_esign_context* ctx, X509* certifi
 void zako_esign_set_publickey(struct zako_esign_context* ctx, EVP_PKEY* key) {
     /* Public key size is a known size, so we can safely ignore this */
 #pragma clang diagnostic ignored "-Wincompatible-pointer-types"
-    zako_get_public_raw(key, &ctx->key.public_key);
+    zako_get_public_raw(key, &ctx->esig_buf.key.public_key);
 }
 
 void zako_esign_add_keycert(struct zako_esign_context* ctx, uint8_t id) {
-    if (ctx->key.trustchain[0] == 255) {
-        ctx->key.trustchain[0] = id;
-    } else if (ctx->key.trustchain[1] == 255) {
-        ctx->key.trustchain[1] = id;
+    if (ctx->esig_buf.key.trustchain[0] == 255) {
+        ctx->esig_buf.key.trustchain[0] = id;
+    } else if (ctx->esig_buf.key.trustchain[1] == 255) {
+        ctx->esig_buf.key.trustchain[1] = id;
     } else {
-        ctx->key.trustchain[2] = id;
+        ctx->esig_buf.key.trustchain[2] = id;
     }
 }
 
 void zako_esign_set_signature(struct zako_esign_context* ctx, uint8_t* hash, uint8_t* signature) {
-    memcpy(&ctx->signature, signature, ZAKO_SIGNATURE_LENGTH);
-    memcpy(&ctx->hash, hash, ZAKO_HASH_LENGTH);
+    memcpy(&ctx->esig_buf.signature, signature, ZAKO_SIGNATURE_LENGTH);
+    memcpy(&ctx->esig_buf.hash, hash, ZAKO_HASH_LENGTH);
 }
 
 void zako_esign_set_timestamp(struct zako_esign_context* ctx, uint64_t ts) {
-    ctx->ts.timestamp = ts;
+    ctx->esig_buf.ts.timestamp = ts;
 }
 
 struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t* len) {
     size_t esig_sz = sizeof(struct zako_esignature);
 
     for (uint8_t i = 0; i < ctx->cert_count; i ++) {
-        if (ctx->cstbl[i] != NULL) {
-            esig_sz += sizeof(struct zako_der_certificate) + ctx->cstbl[i]->len;
+        if (ctx->certs[i] != NULL) {
+            esig_sz += sizeof(struct zako_der_certificate) + ctx->certs[i]->len;
         }
     }
 
     *len = esig_sz;
 
     struct zako_esignature* esignature = (struct zako_esignature*) zako_allocate_safe(esig_sz);
-    esignature->magic = ZAKO_ESIGNATURE_MAGIC;
-    esignature->version = ZAKO_ESIGNATURE_VERSION;
-
-    memcpy(&esignature->key, &ctx->key, sizeof(struct zako_keychain));
-    memcpy(&esignature->ts, &ctx->ts, sizeof(struct zako_timestamp));
-    memcpy(&esignature->signature, &ctx->signature, ZAKO_SIGNATURE_LENGTH);
+    memcpy(esignature, &ctx->esig_buf, sizeof(struct zako_esignature));
 
     esignature->cert_sz = ctx->cert_count;
 
     size_t off = (size_t) &esignature->data;
     for (uint8_t i = 0; i < ctx->cert_count; i ++) {
-        if (ctx->cstbl[i] != NULL) {
-            size_t sz = sizeof(struct zako_der_certificate) + ctx->cstbl[i]->len;
-            memcpy((void*) off, ctx->cstbl[i], sz);
+        if (ctx->certs[i] != NULL) {
+            size_t sz = sizeof(struct zako_der_certificate) + ctx->certs[i]->len;
+            memcpy((void*) off, ctx->certs[i], sz);
 
             off += sz;
         }
