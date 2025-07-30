@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <errno.h>
 
-uint8_t* zako_allocate_safe(size_t len) {
+__hide uint8_t* zako_allocate_safe(size_t len) {
     uint8_t* buff = (uint8_t*) malloc(len);
 
     if (buff == NULL) {
@@ -20,8 +20,7 @@ uint8_t* zako_allocate_safe(size_t len) {
     return buff;
 }
 
-
-bool zako_streq(const char* a, const char* b) {
+__hide bool zako_streq(const char* a, const char* b) {
     if (a == NULL && b == NULL) { 
         return true;
     }
@@ -33,7 +32,7 @@ bool zako_streq(const char* a, const char* b) {
     return strcmp(a, b) == 0;
 }
 
-bool zako_strstarts(char* base, char* prefix) {
+__hide bool zako_strstarts(char* base, char* prefix) {
     while (true) {
         char b = *base++;
         char p = *prefix++;
@@ -49,7 +48,7 @@ bool zako_strstarts(char* base, char* prefix) {
     }
 }
 
-long linux_syscall6(long n, long a1, long a2, long a3, long a4, long a5, long a6) {
+__hide long linux_syscall6(long n, long a1, long a2, long a3, long a4, long a5, long a6) {
     long ret;
 
 #if defined(__aarch64__)
@@ -87,7 +86,7 @@ static const unsigned char base64_table[65] =
  * nul terminated to make it easier to use as a C string. The nul terminator is
  * not included in out_len.
  */
-unsigned char * base64_encode(const unsigned char *src, size_t len,
+__hide unsigned char * base64_encode(const unsigned char *src, size_t len,
 			      size_t *out_len)
 {
 	unsigned char *out, *pos;
@@ -151,7 +150,7 @@ unsigned char * base64_encode(const unsigned char *src, size_t len,
  *
  * Caller is responsible for freeing the returned buffer.
  */
-unsigned char * base64_decode(const unsigned char *src, size_t len,
+__hide unsigned char * base64_decode(const unsigned char *src, size_t len,
 			      size_t *out_len)
 {
 	unsigned char dtable[256], *out, *pos, block[4], tmp;
@@ -215,7 +214,7 @@ unsigned char * base64_decode(const unsigned char *src, size_t len,
 }
 
 
-int zako_opencopy(char* path, char* new, bool overwrite) {
+__hide int zako_opencopy(char* path, char* new, bool overwrite) {
     if (access(new, F_OK) == 0) {
         if (overwrite) {
             if (remove(new) == -1) {
