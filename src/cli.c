@@ -54,13 +54,13 @@ ZakoCommandHandler(root_verify) {
         goto exit;
     }
 
-    for (uint8_t i = 0; i < sizeof(uint32_t); i ++) {
+    for (uint8_t i = 0; i < sizeof(uint32_t) * 8; i ++) {
         if ((results & (1 << i)) == 0) {
             continue;
         }
 
         const char* message = zako_esign_verrcidx2str(i);
-        ConsoleWriteFAIL("%s", message);
+        ConsoleWriteFAIL("  %s", message);
     }
 
 exit:
