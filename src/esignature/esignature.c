@@ -145,24 +145,32 @@ struct zako_esignature* zako_esign_create(struct zako_esign_context* ctx, size_t
     return esignature;
 }
 
-static uint32_t zako_keychain_verify(struct zako_keychain* kc, struct zako_der_certificate* certtbl) {
+static struct zako_der_certificate* zako_keychain_getcert(struct zako_der_certificate** certtbl, uint8_t id) {
+    if (id == 255) {
+        return NULL;
+    }
+
+    return certtbl[id];
+}
+
+static uint32_t zako_keychain_verify(struct zako_keychain* kc, struct zako_der_certificate** certtbl) {
     struct zako_trustchain* chain = zako_trustchain_new();
-    struct zako_der_certificate leaf = certtbl[kc->trustchain[0]];
-    struct zako_der_certificate l3 = certtbl[kc->trustchain[1]];
-    struct zako_der_certificate l2 = certtbl[kc->trustchain[2]];
+    struct zako_der_certificate* leaf = zako_keychain_getcert(certtbl, kc->trustchain[0]);
+    struct zako_der_certificate* l3 = zako_keychain_getcert(certtbl, kc->trustchain[1]);
+    struct zako_der_certificate* l2 = zako_keychain_getcert(certtbl, kc->trustchain[2]);
 
     if (kc->trustchain[0] == 255) {
         return 0;
     }
 
-    zako_trustchain_set_leaf_der(chain, leaf.data, leaf.len);
+    zako_trustchain_set_leaf_der(chain, leaf->data, leaf->len);
 
-    if (l3.len != 0) {
-        zako_trustchain_add_intermediate_der(chain, l3.data, l3.len);
+    if (l3 != NULL) {
+        zako_trustchain_add_intermediate_der(chain, l3->data, l3->len);
     }
 
-    if (l2.len != 0) {
-        zako_trustchain_add_intermediate_der(chain, l2.data, l2.len);
+    if (l2 != NULL) {
+        zako_trustchain_add_intermediate_der(chain, l2->data, l2->len);
     }
 
     int result = zako_trustchain_verify(chain);
@@ -215,9 +223,10 @@ uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t l
     uint8_t cert_count = esig->cert_sz;
     struct zako_der_certificate* cstbl[200] = { 0 };
 
-    size_t off = (size_t) &esig->data;
+    uint8_t* data = &esig->data;
+    size_t off = (size_t) 0;
     for (uint8_t i = 0; i < cert_count; i ++) {
-        struct zako_der_certificate* cert = ApplyOffset(esig, +off);
+        struct zako_der_certificate* cert = ApplyOffset(data, +off);
         cstbl[i] = cert;
 
         off += sizeof(struct zako_der_certificate) + cert->len;
