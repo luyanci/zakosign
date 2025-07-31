@@ -252,7 +252,7 @@ verify_integrity:
 }
 
 const char* zako_esign_verrcidx2str(uint8_t idx) {
-    if (idx > 31) {
+    if (idx >= 31) {
         return NULL;
     }
 
