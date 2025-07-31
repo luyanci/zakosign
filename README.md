@@ -1,4 +1,4 @@
-# zakosign - WIP
+# zakosign
 
 An ELF and PK file signing tool.
 
@@ -6,6 +6,22 @@ An ELF and PK file signing tool.
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 ---
+
+## Purpose
+
+Magisk Modules or Kernel Patch Modules have the highest permissions in your system,
+yet they are not signed.
+At the same time, regular Android Apps, which does not aquire the HIGHEST permissions on your device, are all signed by the developers.
+By signing modules, suspicious and unwanted modification to the module can be prevented.
+An example can be that a virus module pretend to be a popular module by simply cloning module properties. 
+As Android root managers (Magisk, KernelSU, APatch, and their forks) does not
+verify the integrity of Magisk Modules or Kernel Patch Modules,
+this project is here to solve the problem without introducing any breaking changes.
+`zakosign` provides a complete solution for signing both PK (aka ZIP) and ELF files.
+
+It is important to verify before installation but not after installation because
+with root privileges you can basically bypass all signature verification in your system.
+So, it is important to prevent the installation of suspicious modules.
 
 ## For Root Implementations
 
