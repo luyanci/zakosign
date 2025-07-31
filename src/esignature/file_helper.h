@@ -29,4 +29,6 @@ int zako_file_opencopy_rw(char* path, char* new, bool overwrite);
 
 uint32_t zako_file_verify_esig(int fd, uint32_t flags);
 
+struct zako_esignature* zako_file_read_esig(int fd);
+
 #endif

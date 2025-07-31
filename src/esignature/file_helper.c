@@ -52,6 +52,43 @@ int zako_file_opencopy_rw(char* path, char* new, bool overwrite) {
     return zako_opencopy(path, new, overwrite);
 }
 
+struct zako_esignature* zako_file_read_esig(int fd) {
+    struct zako_esignature* esign_buf = NULL;
+
+    struct stat st;
+    fstat(fd, &st);
+
+    void* buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+
+    if (buffer == NULL) {
+        goto done;
+    }
+
+    void* buff_end = ApplyOffset(buffer, +(st.st_size));
+    uint64_t* r_magic = (uint64_t*) ApplyOffset(buff_end, -8);
+    
+    if (*r_magic != ZAKO_ESIGNATURE_MAGIC) {
+        goto done;
+    }
+    
+    uint64_t* sz = (uint64_t*) ApplyOffset(buff_end, -16);
+    if (*sz == 0 || *sz > st.st_size) {
+        goto done;
+    }
+
+    esign_buf = (struct zako_esignature*) ApplyOffset(sz, -*sz);
+
+    if (esign_buf->magic != ZAKO_ESIGNATURE_MAGIC || esign_buf->version != ZAKO_ESIGNATURE_VERSION) {
+        goto done;
+    }
+
+    zako_mdupfield((void**) &esign_buf, *sz);
+
+done:
+    munmap(buffer, st.st_size);
+    return esign_buf;
+}
+
 uint32_t zako_file_verify_esig(int fd, uint32_t flags) {
     struct stat st;
     fstat(fd, &st);

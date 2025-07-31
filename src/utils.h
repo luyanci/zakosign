@@ -20,6 +20,8 @@
  */
 __hide uint8_t* zako_allocate_safe(size_t len);
 
+__hide void zako_mdupfield(void** buf, size_t len);
+
 #define ZakoAllocateStruct(struct_name) (struct struct_name*) zako_allocate_safe(sizeof(struct struct_name))
 
 __hide bool zako_streq(const char* a, const char* b);

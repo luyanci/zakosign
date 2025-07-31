@@ -20,6 +20,14 @@ __hide uint8_t* zako_allocate_safe(size_t len) {
     return buff;
 }
 
+__hide void zako_mdupfield(void** buf, size_t len) {
+	void* original = *buf;
+	void* new = zako_allocate_safe(len);
+	memcpy(new, original, len);
+
+	*buf = new;
+}
+
 __hide bool zako_streq(const char* a, const char* b) {
     if (a == NULL && b == NULL) { 
         return true;

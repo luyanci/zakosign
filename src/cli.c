@@ -9,6 +9,8 @@
 
 #include <openssl/opensslv.h>
 #include <openssl/provider.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <unistd.h>
 
 ZakoCommandHandler(root) {
@@ -66,6 +68,7 @@ ZakoCommandHandler(root_verify) {
 exit:
     close(fd);
 
+    exit(results);
     return results;
 }
 
@@ -223,6 +226,141 @@ ZakoCommandHandler(root_key) {
     return 0;
 }
 
+static void zako_cli_write_certificate_info(struct zako_der_certificate* der) {
+    X509* x509 = zako_x509_parse_der(der->data, der->len);
+
+    if (x509 == NULL) {
+        return;
+    }
+
+    {
+        X509_NAME* name = X509_get_issuer_name(x509);
+        char* line = X509_NAME_oneline(name, NULL, 0);
+        ConsoleWriteOK("      Issued by: %s", line);
+        OPENSSL_free(line);
+    }
+ 
+    {
+        X509_NAME* name = X509_get_subject_name(x509);
+        char* line = X509_NAME_oneline(name, NULL, 0);
+        ConsoleWriteOK("      Subject: %s", line);
+        OPENSSL_free(line);
+    }
+
+    {
+        ASN1_INTEGER* serial = X509_get_serialNumber(x509);
+        BIGNUM* bn = ASN1_INTEGER_to_BN(serial, NULL);
+        char* hex = BN_bn2hex(bn);
+        ConsoleWriteOK("      Serial Number: %s", hex);
+        OPENSSL_free(hex);
+        BN_free(bn);
+    }
+    
+    {
+        BASIC_CONSTRAINTS* constraints = X509_get_ext_d2i(x509, NID_basic_constraints, NULL, NULL);
+        if (constraints) {
+            ConsoleWriteOK("      CA: %s", constraints->ca ? "Yes" : "No");
+            BASIC_CONSTRAINTS_free(constraints);
+        }
+    }
+
+    {
+        BIO* bio = BIO_new(BIO_s_mem());
+    
+        printf("[+]       Not Before: ");
+        ASN1_TIME_print(bio, X509_get0_notBefore(x509));
+        char* notBefore;
+        long notBefore_len = BIO_get_mem_data(bio, &notBefore);
+        printf("%.*s\n", (int)notBefore_len, notBefore);
+        BIO_reset(bio);
+        
+        printf("[+]       Not After : ");
+        ASN1_TIME_print(bio, X509_get0_notAfter(x509));
+        char* notAfter;
+        long notAfter_len = BIO_get_mem_data(bio, &notAfter);
+        printf("%.*s\n", (int)notAfter_len, notAfter);
+
+        BIO_free(bio);
+    }    
+}
+
+ZakoCommandHandler(root_info) {
+    char* input = ZakoParamAt(0);
+
+    if (input == NULL) {
+        ConsoleWrite("Usage: zakosign info <file>")
+    }
+
+    if (access(input, F_OK) != 0) {
+        ConsoleWriteFAIL("%s does not exist!", input);
+        return 1;
+    }
+
+    int fd = zako_file_open_rw(input);
+    struct zako_esignature* esig = zako_file_read_esig(fd);
+
+    if (esig == NULL) {
+        ConsoleWriteFAIL("File does not contains a valid E-Signature.");
+        return 0;
+    }
+
+    ConsoleWriteOK("E-Signature V%lu (%u Certificates, %u Extra fields)", esig->version, esig->cert_sz, esig->extra_fields_sz);
+    ConsoleWriteOK("  Checksum: %s", base64_encode(esig->hash, ZAKO_HASH_LENGTH, NULL));
+    ConsoleWriteOK("  Signed by: %s", base64_encode(esig->key.public_key, ZAKO_PUBKEY_LENGTH, NULL));
+
+    if (esig->key.trustchain[0] == 255) {
+        goto no_cert;
+    }
+
+    uint8_t cert_count = esig->cert_sz;
+    struct zako_der_certificate* cstbl[200] = { 0 };
+
+    uint8_t* data = &esig->data;
+    size_t off = (size_t) 0;
+    for (uint8_t i = 0; i < cert_count; i ++) {
+        struct zako_der_certificate* cert = ApplyOffset(data, +off);
+        cstbl[i] = cert;
+
+        off += sizeof(struct zako_der_certificate) + cert->len;
+    }
+
+    ConsoleWriteOK("  Certificates: ");
+    ConsoleWriteOK("    Leaf:");
+    zako_cli_write_certificate_info(cstbl[esig->key.trustchain[0]]);
+
+    if (esig->key.trustchain[1] == 255) {
+        goto no_cert;
+    }
+
+    if (esig->key.trustchain[2] == 255) {
+        ConsoleWriteOK("    L2:");
+        zako_cli_write_certificate_info(cstbl[esig->key.trustchain[1]]);
+
+        goto no_cert;
+    } else {
+        ConsoleWriteOK("    L3:");
+        zako_cli_write_certificate_info(cstbl[esig->key.trustchain[1]]);
+    }
+
+    ConsoleWriteOK("    L2:");
+    zako_cli_write_certificate_info(cstbl[esig->key.trustchain[2]]);
+
+no_cert:;
+    
+    struct tm* timeinfo = gmtime((const time_t*) &esig->created_at);
+    char time_buffer[32];
+    if (timeinfo) {
+        strftime(time_buffer, 32, "%Y-%m-%dT%H:%M:%SZ", timeinfo);
+        ConsoleWriteOK("  Signed At: %s", time_buffer);
+    } else {
+        ConsoleWriteOK("  Signed At: <Unknown>");
+    }
+
+    ConsoleWriteOK("  Signature: %s", base64_encode(esig->signature, ZAKO_SIGNATURE_LENGTH, NULL));
+
+    return 0;    
+}
+
 ZakoCommandHandler(root_key_new) {
     char* foutput = ZakoParamAt(0);
 
@@ -284,6 +422,7 @@ int main(int argc, char* argv[]) {
         ZakoCommand(root, help);
         ZakoCommand(root, verify);
         ZakoCommand(root, sign);
+        ZakoCommand(root, info);
         ZakoCommand(root, key);
             ZakoCommand(root_key, new);
     ZakoRunCliApp();
