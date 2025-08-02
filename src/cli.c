@@ -396,7 +396,7 @@ ZakoCommandHandler(root_key_new) {
     BIO_free(out);
 
     BIO* pubout = BIO_new(BIO_s_mem());
-    if (PEM_write_bio_PUBKEY(out, pkey) <= 0) {
+    if (PEM_write_bio_PUBKEY(pubout, pkey) <= 0) {
         ZakoOSSLPrintError("Failed to write signing public key!");
     }
     
