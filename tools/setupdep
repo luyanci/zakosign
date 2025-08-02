@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+
+MISSING_BIN=""
+DO_NDK=""
+
+function check-installed() {
+    if ! test "$1" ; then
+        echo "Missing $1!"
+        MISSING_BIN="yes"
+    fi
+}
+
+check-installed "clang"
+check-installed "cmake"
+check-installed "ninja"
+check-installed "git"
+check-installed "make"
+
+if [ "$MISSING_BIN" = "yes" ]; then
+    echo "Missing dependencies! Aborting..."
+    exit 1
+fi
+
+if ! [ -d "$ANDROID_NDK" ]; then
+    echo "WARNING: NDK not specified or not found."
+    echo "  Hint: If you wish to also build for android, specify with ANDROID_NDK=\"</path/to/ndk>\""
+else
+    DO_NDK="yes"
+fi
+
+echo "Updating all dependencies..."
+git submodule update --init --recursive
+
+function boringssl-gen-ninja() {
+    if ! [ -d "build-host" ]; then
+        echo "Generating host ninja file..."
+
+        cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+              -DCMAKE_BUILD_TYPE=Release \
+              -GNinja -B build-host 
+    fi
+
+    if [ "$DO_NDK" = "yes" ] && [ ! -d "build-android" ]; then
+        echo "Generating android ninja file..."
+
+        cmake -DANDROID_ABI=arm64-v8a \
+              -DANDROID_PLATFORM=android-21 \
+              -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK}/build/cmake/android.toolchain.cmake \
+              -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+              -DCMAKE_BUILD_TYPE=Release \
+              -GNinja -B build-android  
+    fi
+}
+
+function boringssl-call-ninja() {
+    cd build-host
+
+    ninja -j10
+
+    cd ..
+    
+    if [ "$DO_NDK" = "yes" ]; then
+        cd build-android
+
+        ninja -j10
+
+        cd ..
+    fi
+}
+
+function boringssl-build() {
+    cd boringssl
+
+    boringssl-gen-ninja
+    boringssl-call-ninja
+
+    cd ..
+}
+
+function boringssl-select() {
+    cd boringssl
+
+    if [ -d "build" ]; then
+        rm build
+    fi
+
+    if ! [ -d "build-$1" ]; then
+        echo "You must build $1 first"
+        exit 1
+    fi
+
+    ln -s build-$1 build
+}
+
+function boringssl-clean() {
+    cd boringssl
+
+    if [ "$1" = "deep" ]; then
+        rm -rf build-host
+        rm -rf build-android
+        rm -f build
+
+        return 0
+    fi
+    
+    if [ -d "build-host" ]; then
+        cd build-host
+        ninja clean
+    fi
+
+    if [ -d "build-android" ]; then
+        cd build-android
+        ninja clean
+    fi
+
+    if [ -d "build" ]; then
+        rm build
+    fi
+
+    cd ..
+}
+
+
+case "$1" in
+    clean)
+        boringssl-clean $2
+    ;;
+
+    android)
+        boringssl-select "android"
+    ;;
+
+    host)
+        boringssl-select "host"
+    ;;
+
+    *)
+        boringssl-build
+    ;;
+
+esac

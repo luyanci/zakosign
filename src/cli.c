@@ -7,10 +7,7 @@
 #include "esignature/esignature.h"
 #include "esignature/cert_helper.h"
 
-#include <openssl/opensslv.h>
-#include <openssl/provider.h>
 #include <openssl/x509.h>
-#include <openssl/x509v3.h>
 #include <unistd.h>
 
 ZakoCommandHandler(root) {
@@ -103,7 +100,6 @@ ZakoCommandHandler(root_sign) {
     struct zako_esign_context* es_ctx = zako_esign_new();
 
     /* Gather certificate info */
-    OSSL_PROVIDER* default_provider = OSSL_PROVIDER_load(NULL, "default");
     struct zako_trustchain* chain = zako_trustchain_new();
 
     {
@@ -213,7 +209,6 @@ ZakoCommandHandler(root_sign) {
     free(esig);
     zako_trustchain_free(chain);
     EVP_PKEY_free(pkey);
-    OSSL_PROVIDER_unload(default_provider);
 
     ConsoleWriteOK("Done")
 
@@ -380,7 +375,7 @@ ZakoCommandHandler(root_key_new) {
         return 1;
     }
 
-    if (EVP_PKEY_generate(ctx, &pkey) <= 0) {
+    if (EVP_PKEY_keygen(ctx, &pkey) <= 0) {
         ZakoOSSLPrintError("Failed to generate signing key!");
 
         EVP_PKEY_CTX_free(ctx);

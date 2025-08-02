@@ -96,8 +96,19 @@ related features, you must compile your own copy of zakosign.
 
 ### Compiling zakosign
 
-Make sure you have `make` and almost any llvm toolchain installed.
-You can use NDK if you wish to target android.
+Required Packages are listed below:
+- `GNU Make`
+- `ninja`
+- `make`
+- `cmake`
+- `llvm` and `clang` (20+)
+- `NDK` Required only if targeting android
+
+Run `tools/setupdep` to compile all dependencies.
+Then, run `tools/setupdep <host|android>` to select target platform.
+
+> Note: If you are targeting android, please set ANDROID_HOME to NDK installation path
+> before you perform anything.
 
 Then, clone this repository and run `make` in the root directory to compile.
 Don't forget to set CC environment variable before you start.

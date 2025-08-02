@@ -10,8 +10,8 @@ SRC_PATH := src
 DBG_PATH := debug
 
 # flags
-CFLAGS := -I$(SRC_PATH) -Wno-deprecated-declarations -Werror -c $(CFLAGS)
-LDFLAGS := -Wall -fPIC $(LDFLAGS) -fuse-ld=lld
+CFLAGS := -I$(SRC_PATH) -fPIC -Wno-deprecated-declarations -Werror -c $(CFLAGS)
+LDFLAGS := -Wall $(LDFLAGS) -fuse-ld=lld
 
 # compile macros
 TARGET_NAME_DYNAMIC := zakosign
@@ -24,13 +24,13 @@ else
 	LDFLAGS := $(LDFLAGS) -O3
 endif
 
-LDFLAGS := \
-	-L/usr/lib \
-	-lcrypto \
-	-lssl \
-	$(LDFLAGS)
+LDFLAGS := $(LDFLAGS) \
+	-Lboringssl/build \
+	-l:libcrypto.a \
+	-l:libssl.a
 
 CFLAGS := \
+	-Iboringssl/include \
 	$(CFLAGS)
 
 TARGET_DYNAMIC := $(BIN_PATH)/lib$(TARGET_NAME_DYNAMIC).so

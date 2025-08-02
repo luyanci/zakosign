@@ -8,6 +8,8 @@ obj
 **/*.kpm
 **/*.ko
 **/*.zip
+boringssl/build-android
+boringssl/build-host
 
 # Intermediate files
 generated-intermediates

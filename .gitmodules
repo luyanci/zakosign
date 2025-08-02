@@ -1,0 +1,4 @@
+[submodule "boringssl"]
+	path = boringssl
+	url = https://boringssl.googlesource.com/boringssl
+	branch = main

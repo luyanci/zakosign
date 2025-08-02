@@ -1,84 +1,73 @@
 #include "ed25519_sign.h"
 #include "esignature.h"
 
-#include <openssl/decoder.h>
+#include <openssl/pem.h>
 #include <openssl/objects.h>
 #include <openssl/err.h>
 
-static EVP_PKEY* zako_load_anykey(const char* path, char* password) {
-    FILE* fkey = fopen(path, "r");
+static int zako_ossl_handle_password(char* buf, int size, int rwflag, void* userdata) {
+    const char* password = (const char*) userdata;
+    if (password == NULL) {
+        return -1;
+    }
+    size_t password_len = strlen(password);
 
-    if (fkey == NULL) {
+    if ((size_t) size <= password_len) {
+        return -1;
+    }
+
+    memcpy(buf, password, password_len);
+    return (int)password_len;
+}
+
+static EVP_PKEY* zako_load_anykey(const char* path, char* password) {
+    BIO* bio = BIO_new_file(path, "r");
+
+    if (bio == NULL) {
         ConsoleWriteFAIL("Failed to open %s", path);
 
         return NULL;
     }
-
-    EVP_PKEY* key = NULL;
-    OSSL_DECODER_CTX* dctx = OSSL_DECODER_CTX_new_for_pkey(&key, NULL, NULL, NULL, EVP_PKEY_KEYPAIR, NULL, NULL);;
-
-    if (dctx == NULL) {
-        ZakoOSSLPrintError("OpenSSL Failed to load private key: %s", path);
-
-        return NULL;
-    }
-
-    if (password != NULL) {
-        if (OSSL_DECODER_CTX_set_passphrase(dctx, (const unsigned char* )password, strlen(password)) != 1) {
-            ZakoOSSLPrintError("OpenSSL Failed to load private key: %s", path);
-
-            goto done;
-        }
-    }
     
-    if (OSSL_DECODER_from_fp(dctx, fkey) != 1) {
-        ZakoOSSLPrintError("OpenSSL Failed to load private key: %s", path);
+    EVP_PKEY* key = PEM_read_bio_PrivateKey(bio, NULL, zako_ossl_handle_password, (void*) password);
+
+    if (key == NULL) {
+        ConsoleWriteFAIL("Failed to parse private key (wrong password?)");
 
         goto done;
     }
 
-    int id = EVP_PKEY_get_id(key);
-
+    int id = EVP_PKEY_id(key);
     ConsoleWriteOK("%s (%s) Loaded successfully!", path, OBJ_nid2ln(id));
 
 done:
-    OSSL_DECODER_CTX_free(dctx);
-    fclose(fkey);
+    BIO_free(bio);
 
     return key;
 }
 
 static EVP_PKEY* zako_parse_anykey(const char* data, char* password) {
-    EVP_PKEY* key = NULL;
-    OSSL_DECODER_CTX* dctx = OSSL_DECODER_CTX_new_for_pkey(&key, NULL, NULL, NULL, EVP_PKEY_KEYPAIR, NULL, NULL);;
+    BIO* bio = BIO_new_mem_buf(data, strlen(data) + 1);
 
-    if (dctx == NULL) {
-        ZakoOSSLPrintError("OpenSSL Failed to load private key: ");
+    if (bio == NULL) {
+        ConsoleWriteFAIL("Failed to parse private key (memory error)");
 
         return NULL;
     }
-
-    if (password != NULL) {
-        if (OSSL_DECODER_CTX_set_passphrase(dctx, (const unsigned char* )password, strlen(password)) != 1) {
-            ZakoOSSLPrintError("OpenSSL Failed to load private key: ");
-
-            goto done;
-        }
-    }
     
-    size_t sz = strlen(data) + 1;
-    if (OSSL_DECODER_from_data(dctx, (const unsigned char**) &data, &sz) != 1) {
-        ZakoOSSLPrintError("OpenSSL Failed to load private key: ");
+    EVP_PKEY* key = PEM_read_bio_PrivateKey(bio, NULL, zako_ossl_handle_password, (void*) password);
 
+    if (key == NULL) {
+        ConsoleWriteFAIL("Failed to parse private key (wrong password?)");
+        
         goto done;
     }
 
-    int id = EVP_PKEY_get_id(key);
-
+    int id = EVP_PKEY_id(key);
     ConsoleWriteOK("Key (%p, %s) Loaded successfully!", data, OBJ_nid2ln(id));
 
 done:
-    OSSL_DECODER_CTX_free(dctx);
+    BIO_free(bio);
 
     return key;
 }
@@ -208,17 +197,7 @@ static bool zako_sign_stream_do_final(struct zako_stream_sign_context* context, 
 }
 
 static bool zako_sign_stream_update(struct zako_stream_sign_context* context, uint8_t* buffer, size_t len) {
-    if (EVP_DigestSignUpdate(context->ctx, buffer, len) != 1) {
-
-        EVP_PKEY* pkey = EVP_PKEY_CTX_get0_pkey(EVP_MD_CTX_get_pkey_ctx(context->ctx));
-        ConsoleWriteOK("Signing block with public Key Context: %s, size:%d", EVP_PKEY_get0_description(pkey), EVP_PKEY_get_size(pkey));
-
-        ZakoOSSLPrintError("Failed to sign block ");
-
-        return false;
-    } else {
-        return true;
-    }
+    return EVP_DigestSignUpdate(context->ctx, buffer, len) == 1;
 }
 
 bool zako_sign_stream(struct zako_stream_sign_context* context, uint8_t* buffer, size_t len, uint8_t** result) {
