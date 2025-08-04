@@ -1,0 +1,58 @@
+name: Build
+
+on:
+    push:
+      path: ["./src/**"]
+      tag: "v*"
+    workflow_dispatch:
+
+jobs:
+    build_host:
+        name: Build cli
+        runs-on: ubuntu-latest
+        steps:
+            # clone repo
+            - uses: actions/checkout@v4
+              with:
+                submodule: recursive
+
+            # Setup cpp
+            - name: Setup cpp
+              uses: aminya/setup-cpp@v1
+              with:
+                compiler: llvm
+                clang: 20
+                cmake: true
+                ninja: true
+                make: true
+                llvm: true
+
+            - name: Setup NDK
+              id: setup-ndk
+              uses: nttld/setup-ndk@v1
+              with:
+                ndk-version: r27d
+
+            # run setupdep
+            - name: Setupdep
+              run: ./tools/setupdep android
+              env:
+                ANDROID_NDK: ${{steps.setup-ndk.outputs.ndk-path}}
+
+            # Starting build
+            - name: Build
+              run: make
+
+            - name: Write rootca & recompile
+              run: |
+                if [ ! -z "${{ secrets.ROOTCA }}" ]; then
+                    echo ${{ secrets.ROOTCA }} | base64 -d > rootca.crt
+                    ./tools/addca ./rootca.crt
+                    make
+                fi
+
+            - name: Upload
+              uses: actions/upload-artifact@v4
+              with:
+                name: zakosign-host-${{matrix.os}}
+                path: ./bin/*

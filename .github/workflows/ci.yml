@@ -1,0 +1,53 @@
+name: Build
+
+on:
+    push:
+      path: ["./src/**"]
+      tag: "v*"
+    workflow_dispatch:
+
+jobs:
+    build_host:
+        name: Build cli
+        strategy:
+            matrix:
+                os: ["ubuntu-latest","ubuntu-22.04"]
+        runs-on: ${{ matrix.os }}
+        steps:
+            # clone repo
+            - uses: actions/checkout@v4
+              with:
+                submodule: recursive
+
+            # Setup cpp
+            - name: Setup cpp
+              uses: aminya/setup-cpp@v1
+              with:
+                compiler: llvm
+                clang: 20
+                cmake: true
+                ninja: true
+                make: true
+                llvm: true
+
+            # run setupdep
+            - name: Setupdep
+              run: ./tools/setupdep
+
+            # Starting build
+            - name: Build
+              run: make
+
+            - name: Write rootca & recompile
+              run: |
+                if [ ! -z "${{ secrets.ROOTCA }}" ]; then
+                    echo ${{ secrets.ROOTCA }} | base64 -d > rootca.crt
+                    ./tools/addca ./rootca.crt
+                    make
+                fi
+
+            - name: Upload
+              uses: actions/upload-artifact@v4
+              with:
+                name: zakosign-host-${{matrix.os}}
+                path: ./bin/*
