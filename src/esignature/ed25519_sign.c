@@ -37,9 +37,6 @@ static EVP_PKEY* zako_load_anykey(const char* path, char* password) {
         goto done;
     }
 
-    int id = EVP_PKEY_id(key);
-    ConsoleWriteOK("%s (%s) Loaded successfully!", path, OBJ_nid2ln(id));
-
 done:
     BIO_free(bio);
 
@@ -62,9 +59,6 @@ static EVP_PKEY* zako_parse_anykey(const char* data, char* password) {
         
         goto done;
     }
-
-    int id = EVP_PKEY_id(key);
-    ConsoleWriteOK("Key (%p, %s) Loaded successfully!", data, OBJ_nid2ln(id));
 
 done:
     BIO_free(bio);
