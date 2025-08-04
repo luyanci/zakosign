@@ -20,18 +20,26 @@ jobs:
             - name: Setup cpp
               uses: aminya/setup-cpp@v1
               with:
-                compiler: llvm
-                clang: 20
                 cmake: true
                 ninja: true
                 make: true
-                llvm: true
 
             - name: Setup NDK
               id: setup-ndk
               uses: nttld/setup-ndk@v1
               with:
                 ndk-version: r27d
+
+            - name: Setup zyclang
+              id: zyclang
+              run: |
+                mkdir clang
+
+                wget https://github.com/ZyCromerZ/Clang/releases/download/20.0.0git-20250129-release/Clang-20.0.0git-20250129.tar.gz
+
+                tar zxvf "Clang-20.0.0git-20250129.tar.gz" -C clang
+
+                rm Clang-20.0.0git-20250129.tar.gz
 
             # run setupdep
             - name: Setupdep
@@ -43,15 +51,22 @@ jobs:
 
             # Starting build
             - name: Build
-              run: make
+              run: |
+                export PATH=$(pwd)/clang/bin:$PATH
+                make
+              env:
+                ANDROID_HOME: ${{steps.setup-ndk.outputs.ndk-path}}
 
             - name: Write rootca & recompile
               run: |
+                export PATH=$(pwd)/clang/bin;$PATH
                 if [ ! -z "${{ secrets.ROOTCA }}" ]; then
                     echo ${{ secrets.ROOTCA }} | base64 -d > rootca.crt
                     ./tools/addca ./rootca.crt
                     make
                 fi
+              env:
+                ANDROID_HOME: ${{steps.setup-ndk.outputs.ndk-path}}
 
             - name: Upload
               uses: actions/upload-artifact@v4
