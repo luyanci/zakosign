@@ -17,7 +17,7 @@ jobs:
             # clone repo
             - uses: actions/checkout@v4
               with:
-                submodule: recursive
+                submodules: recursive
 
             # Setup cpp
             - name: Setup cpp
