@@ -60,7 +60,8 @@ __hide long linux_syscall6(long n, long a1, long a2, long a3, long a4, long a5, 
     long ret;
 
 #if defined(__aarch64__)
-    asm volatile ("svc #0" : "=r"(ret) : "r"(n), "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a5), "r"(a6) : "memory");
+	register long syscall_number __asm__("r8") = n;
+    asm volatile ("svc #0" : "=r"(ret) : "r"(syscall_number), "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a5), "r"(a6) : "memory");
 #else
     register long r10 __asm__("r10") = a4;
     register long r8 __asm__("r8") = a5;
