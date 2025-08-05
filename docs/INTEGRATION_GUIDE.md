@@ -131,6 +131,8 @@ Pro tip: Don't forget to recompile.
 - Manager should give developer at least one month migration window.
 - Manager should not stop user from installing an untrusted module.
 - Manager should only warn user if verification failed and point out potential risks.
+    - Potential risks include: files may be damaged or modified
+    - Users cannot be informed that there is malicious code, because the act of signing does not guarantee that the code is safe.
+    - Warning colors cannot be used to indicate signature verification failure, because a signature does not mean it is secure.
 - Manager can optionally support OSS verification and show user that the module is Opensource
-
 
