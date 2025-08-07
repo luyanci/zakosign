@@ -10,6 +10,7 @@ TEMPLATE="X509_STORE_add_cert(chain->trusted_ca, zako_x509_parse_pem((char*) Zak
 TEMPLATE_DEF="ZakoDefineConstant($NAME)"
 
 cp $1 src/$NAME.bin
+printf "\0" >> src/$NAME.bin
 
 sed -i "/Add integrated CAs/a $TEMPLATE"  src/esignature/cert_helper.c
 sed -i "/Add integrated CAs/a $TEMPLATE_DEF"  src/constants.h
