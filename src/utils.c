@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <errno.h>
 
+#include "syscall.h"
+
 __hide uint8_t* zako_allocate_safe(size_t len) {
     uint8_t* buff = (uint8_t*) malloc(len);
 
@@ -54,22 +56,6 @@ __hide bool zako_strstarts(char* base, char* prefix) {
         }
 
     }
-}
-
-__hide long linux_syscall6(long n, long a1, long a2, long a3, long a4, long a5, long a6) {
-    long ret;
-
-#if defined(__aarch64__)
-	register long syscall_number __asm__("r8") = n;
-    asm volatile ("svc #0" : "=r"(ret) : "r"(syscall_number), "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a5), "r"(a6) : "memory");
-#else
-    register long r10 __asm__("r10") = a4;
-    register long r8 __asm__("r8") = a5;
-    register long r9 __asm__("r9") = a6;
-    asm volatile ("syscall" : "=a"(ret) : "a"(n), "D"(a1), "S"(a2), "d"(a3), "r"(r10), "r"(r8), "r"(r9) : "rcx", "r11", "memory");
-#endif
-
-    return ret;
 }
 
 /*
@@ -271,7 +257,7 @@ __hide int zako_opencopy(char* path, char* new, bool overwrite) {
            
            In order to not copy from kernel to userspace and vise versa multiple times
            we are going to manually do a syscall. Yay! */
-        ret = linux_syscall6(__NR_copy_file_range, fd_in, (long) NULL, fd_out, (long) NULL, size, 0);
+        ret = zako_syscall6(__NR_copy_file_range, fd_in, (long) NULL, fd_out, (long) NULL, size, 0);
         if (ret == -1) {
             ConsoleWriteFAIL("Failed copy %s to %s", path, new);
             return -1;
