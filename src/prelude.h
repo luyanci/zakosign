@@ -5,12 +5,12 @@
 #define ZAKO_TARGET_POSIX 1
 #endif
 
-#if defined(__WIN32)
-#define ZAKOO_TARGET_NT 1
+#if defined(_WIN64)
+#define ZAKO_TARGET_NT 1
 #endif 
 
 #if defined(__APPLE__)
-#define ZAKOO_TARGET_APPLE 1
+#define ZAKO_TARGET_APPLE 1
 #define ZAKO_TARGET_POSIX 1
 #endif
 
