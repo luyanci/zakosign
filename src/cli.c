@@ -8,7 +8,6 @@
 #include "esignature/cert_helper.h"
 
 #include <openssl/x509.h>
-#include <unistd.h>
 #include <stdio.h>
 
 /* What if we are on mars?? How should we tell if one day isn't 86400?
@@ -39,12 +38,12 @@ ZakoCommandHandler(root_verify) {
         ConsoleWrite("Usage: zakosign verify [options...] <input.elf>")
     }
 
-    if (access(input, F_OK) != 0) {
+    if (!zako_sys_file_exist(input)) {
         ConsoleWriteFAIL("%s does not exist!", input);
         return 1;
     }
 
-    int fd = zako_file_open_rw(input);
+    file_handle_t fd = zako_sys_file_open(input);
     uint32_t results = zako_file_verify_esig(fd, 
                             (strict_mode ? ZAKO_ESV_STRICT_MODE : 0) + 
                             (integrity_only ? ZAKO_ESV_INTEGRITY_ONLY : 0));
@@ -70,7 +69,7 @@ ZakoCommandHandler(root_verify) {
     }
 
 exit:
-    close(fd);
+    zako_sys_file_close(fd);
 
     exit(results);
     return results;
@@ -94,12 +93,12 @@ ZakoCommandHandler(root_sign) {
         return 1;
     }
 
-    if (access(input, F_OK) != 0) {
+    if (!zako_sys_file_exist(input)) {
         ConsoleWriteFAIL("%s does not exist!", input);
         return 1;
     }
 
-    if (access(key, F_OK) != 0) {
+    if (!zako_sys_file_exist(key)) {
         ConsoleWriteFAIL("%s does not exist!", key);
         return 1;
     }
@@ -167,20 +166,18 @@ ZakoCommandHandler(root_sign) {
             } else {
                 ConsoleWriteFAIL("  %s (%i)", X509_verify_cert_error_string(verification), verification)
             }
-            
-            // exit(1);
         }
     }
 
     zako_esign_set_publickey(es_ctx, pubkey);
 
     /* Load input / output ELF file */
-    int target;
+    file_handle_t target;
 
     if (output == NULL) {
-        target = zako_file_open_rw(input);
+        target = zako_sys_file_open(input);
     } else {
-        target = zako_file_opencopy_rw(input, output, overwrite);
+        target = zako_sys_file_opencopy(input, output, overwrite);
     }
 
     if (target == -1) {
@@ -197,10 +194,9 @@ ZakoCommandHandler(root_sign) {
         ConsoleWriteFAIL("Failed to sign input file")
         return 1;
     }
-    struct stat st;
-    fstat(target, &st);
+    size_t target_sz = zako_sys_file_sz(target);
 
-    ConsoleWriteOK("File Signature created: %s (%li bytes digested)", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL), st.st_size);
+    ConsoleWriteOK("File Signature created: %s (%lu bytes digested)", base64_encode(result, ZAKO_SIGNATURE_LENGTH, NULL), target_sz);
     
     zako_esign_set_signature(es_ctx, hash, result);
     
@@ -212,7 +208,7 @@ ZakoCommandHandler(root_sign) {
         exit(1);
     }
 
-    close(target);
+    zako_sys_file_close(target);
     free(esig);
     zako_trustchain_free(chain);
     EVP_PKEY_free(pkey);
@@ -293,12 +289,12 @@ ZakoCommandHandler(root_info) {
         ConsoleWrite("Usage: zakosign info <file>")
     }
 
-    if (access(input, F_OK) != 0) {
+    if (!zako_sys_file_exist(input)) {
         ConsoleWriteFAIL("%s does not exist!", input);
         return 1;
     }
 
-    int fd = zako_file_open_rw(input);
+    file_handle_t fd = zako_sys_file_open(input);
     struct zako_esignature* esig = zako_file_read_esig(fd);
 
     if (esig == NULL) {
@@ -360,6 +356,7 @@ no_cert:;
 
     ConsoleWriteOK("  Signature: %s", base64_encode(esig->signature, ZAKO_SIGNATURE_LENGTH, NULL));
 
+    zako_sys_file_close(fd);
     return 0;    
 }
 
@@ -429,7 +426,7 @@ ZakoCommandHandler(root_key_pub) {
         return 1;
     }
 
-    if (access(input, F_OK) != 0) {
+    if (!zako_sys_file_exist(input)) {
         ConsoleWriteFAIL("%s does not exist!", input);
         return 1;
     }
@@ -560,7 +557,7 @@ ZakoCommandHandler(root_cert_new) {
         return 1;
     }
 
-    if (access(private_key_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(private_key_path)) {
         ConsoleWriteFAIL("%s does not exist!", private_key_path);
         return 1;
     }
@@ -642,7 +639,7 @@ ZakoCommandHandler(root_cert_request) {
         return 1;
     }
 
-    if (access(private_key_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(private_key_path)) {
         ConsoleWriteFAIL("%s does not exist!", private_key_path);
         return 1;
     }
@@ -763,17 +760,17 @@ ZakoCommandHandler(root_cert_approve) {
         return 1;
     }
 
-    if (access(private_key_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(private_key_path)) {
         ConsoleWriteFAIL("%s does not exist!", private_key_path);
         return 1;
     }
 
-    if (access(ca_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(ca_path)) {
         ConsoleWriteFAIL("%s does not exist!", ca_path);
         return 1;
     }
 
-    if (access(request_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(request_path)) {
         ConsoleWriteFAIL("%s does not exist!", request_path);
         return 1;
     }
@@ -955,17 +952,17 @@ ZakoCommandHandler(root_cert_issue) {
         return 1;
     }
 
-    if (access(private_key_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(private_key_path)) {
         ConsoleWriteFAIL("%s does not exist!", private_key_path);
         return 1;
     }
 
-    if (access(ca_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(ca_path)) {
         ConsoleWriteFAIL("%s does not exist!", ca_path);
         return 1;
     }
 
-    if (access(subject_key_path, F_OK) != 0) {
+    if (!zako_sys_file_exist(subject_key_path)) {
         ConsoleWriteFAIL("%s does not exist!", subject_key_path);
         return 1;
     }

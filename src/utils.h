@@ -31,6 +31,4 @@ __hide bool zako_strstarts(char* base, char* prefix);
 __hide unsigned char* base64_encode(const unsigned char* src, size_t len, size_t* out_len);
 __hide unsigned char* base64_decode(const unsigned char* src, size_t len, size_t* out_len);
 
-__hide int zako_opencopy(char* path, char* new, bool overwrite);
-
 #endif

@@ -6,65 +6,49 @@
 
 #include "ed25519_sign.h"
 
-bool zako_file_sign(int fd, EVP_PKEY* key, uint8_t* result, uint8_t* hash) {
+bool zako_file_sign(file_handle_t fd, EVP_PKEY* key, uint8_t* result, uint8_t* hash) {
 
-    struct stat st;
-    fstat(fd, &st);
+    size_t buf_sz = zako_sys_file_sz(fd);
 
-    void* buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    void* buffer = zako_sys_file_map(fd, buf_sz);
     
-    zako_hash_buffer(buffer, st.st_size, hash);
+    zako_hash_buffer(buffer, buf_sz, hash);
 
     if (!zako_sign_buffer(key, hash, ZAKO_HASH_LENGTH, result)) {
         ZakoOSSLPrintError("Failed to sign buffer!");
     }
 
-    munmap(buffer, st.st_size);
+    zako_sys_file_unmap(buffer, buf_sz);
 
     return true;
 }
 
-bool zako_file_write_esig(int fd, struct zako_esignature* esignature, size_t len) {
+bool zako_file_write_esig(file_handle_t fd, struct zako_esignature* esignature, size_t len) {
     if (lseek(fd, 0, SEEK_END) == -1) {
         return false;
     }
 
     uint64_t magic = ZAKO_ESIGNATURE_MAGIC;
 
-    write(fd, esignature, len);
-    write(fd, &len, sizeof(size_t));
-    write(fd, &magic, sizeof(uint64_t));
+    zako_sys_file_append_end(fd, (uint8_t*) esignature, len);
+    zako_sys_file_append_end(fd, (uint8_t*) &len, sizeof(size_t));
+    zako_sys_file_append_end(fd, (uint8_t*) &magic, sizeof(uint64_t));
 
     return true;
 }
 
-int zako_file_open_rw(char* path) {
-    int fd = open(path, O_RDWR);
-    if (fd == -1) {
-        ConsoleWriteFAIL("Failed to open %s", path);
-        return -1;
-    }
-
-    return fd;
-}
-
-int zako_file_opencopy_rw(char* path, char* new, bool overwrite) {
-    return zako_opencopy(path, new, overwrite);
-}
-
-struct zako_esignature* zako_file_read_esig(int fd) {
+struct zako_esignature* zako_file_read_esig(file_handle_t fd) {
     struct zako_esignature* esign_buf = NULL;
 
-    struct stat st;
-    fstat(fd, &st);
+    size_t file_sz = zako_sys_file_sz(fd);
 
-    void* buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    void* buffer = zako_sys_file_map(fd, file_sz);
 
     if (buffer == NULL) {
         goto done;
     }
 
-    void* buff_end = ApplyOffset(buffer, +(st.st_size));
+    void* buff_end = ApplyOffset(buffer, +(file_sz));
     uint64_t* r_magic = (uint64_t*) ApplyOffset(buff_end, -8);
     
     if (*r_magic != ZAKO_ESIGNATURE_MAGIC) {
@@ -72,7 +56,7 @@ struct zako_esignature* zako_file_read_esig(int fd) {
     }
     
     uint64_t* sz = (uint64_t*) ApplyOffset(buff_end, -16);
-    if (*sz == 0 || *sz > st.st_size) {
+    if (*sz == 0 || *sz > file_sz) {
         goto done;
     }
 
@@ -85,21 +69,20 @@ struct zako_esignature* zako_file_read_esig(int fd) {
     zako_mdupfield((void**) &esign_buf, *sz);
 
 done:
-    munmap(buffer, st.st_size);
+    zako_sys_file_unmap(buffer, file_sz);
     return esign_buf;
 }
 
-uint32_t zako_file_verify_esig(int fd, uint32_t flags) {
-    struct stat st;
-    fstat(fd, &st);
+uint32_t zako_file_verify_esig(file_handle_t fd, uint32_t flags) {
+    size_t file_sz = zako_sys_file_sz(fd);
 
-    void* buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-    
+    void* buffer = zako_sys_file_map(fd, file_sz);
+
     if (buffer == NULL) {
         return ZAKO_FV_MMAP_FAILED;
     }
 
-    void* buff_end = ApplyOffset(buffer, +(st.st_size));
+    void* buff_end = ApplyOffset(buffer, +(file_sz));
     uint64_t* r_magic = (uint64_t*) ApplyOffset(buff_end, -8);
     
     if (*r_magic != ZAKO_ESIGNATURE_MAGIC) {
@@ -107,7 +90,7 @@ uint32_t zako_file_verify_esig(int fd, uint32_t flags) {
     }
 
     uint64_t* sz = (uint64_t*) ApplyOffset(buff_end, -16);
-    if (*sz == 0 || *sz > st.st_size) {
+    if (*sz == 0 || *sz > file_sz) {
         return ZAKO_FV_INVALID_HEADER;
     }
 
@@ -116,8 +99,8 @@ uint32_t zako_file_verify_esig(int fd, uint32_t flags) {
     /* Entire file footer is ESignature + ESignatureSize + ESignatureMagic 
          which is *sz + sizeof(sz) + 8 = *sz + 16
        So, original file buffer will be FileSize - *sz - 16 */
-    uint32_t result = zako_esign_verify(esign_buf, buffer, st.st_size - *sz - 16, flags);
+    uint32_t result = zako_esign_verify(esign_buf, buffer, file_sz - *sz - 16, flags);
 
-    munmap(buffer, st.st_size);
+    zako_sys_file_unmap(buffer, file_sz);
     return result;
 }
