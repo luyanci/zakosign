@@ -49,7 +49,6 @@ __hide long zako_syscall2(long n, long a1, long a2) {
     register long syscall_number __asm__("r7") = n;
     register long arg1 __asm__("r0") = a1;
     register long arg2 __asm__("r1") = a2;
-    register long arg3 __asm__("r2") = a3;
     asm volatile ("svc #0" : "=r"(ret) : "r"(syscall_number), "r"(arg1), "r"(arg2) : "memory");
 #else
     register long syscall_number __asm__("rax") = n;
