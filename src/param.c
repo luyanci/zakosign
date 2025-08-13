@@ -159,6 +159,10 @@ next:
 }
 
 bool zako_flag(char* flags, char fl) {
+    if (flags == NULL) {
+        return false;
+    }
+
     if (zako_i8_inrange(fl, 'A', 'Z')) {
         return flags[fl - 65] != 0;
     } else if (zako_i8_inrange(fl, 'a', 'z')) {
