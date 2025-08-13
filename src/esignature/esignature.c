@@ -253,6 +253,13 @@ verify_integrity:
 
     EVP_PKEY_free(pubkey);
 
+    uint64_t now = (uint64_t) time(NULL);
+    if (esig->created_at == 0) {
+        result |= ZAKO_ESV_MISSING_TIMESTAMP;
+    } else if (esig->created_at >= now) {
+        result |= ZAKO_ESV_UNTRUSTED_TIMESTAMP;
+    }
+
     return result;
 
 }
