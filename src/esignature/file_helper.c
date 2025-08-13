@@ -6,6 +6,12 @@
 
 #include "ed25519_sign.h"
 
+
+static char* error_messages[] = {
+    "Failed to map input file into memory (out of memory?)",
+    "Input file does not have a valid E-Signature header"
+};
+
 bool zako_file_sign(file_handle_t fd, EVP_PKEY* key, uint8_t* result, uint8_t* hash) {
 
     size_t buf_sz = zako_sys_file_sz(fd);
@@ -103,4 +109,16 @@ uint32_t zako_file_verify_esig(file_handle_t fd, uint32_t flags) {
 
     zako_sys_file_unmap(buffer, file_sz);
     return result;
+}
+
+const char* zako_file_verrcidx2str(uint8_t idx) {
+    if (idx < 16) {
+        return zako_esign_verrcidx2str(idx);
+    }
+
+    if (idx >= 31) {
+        return NULL;
+    }
+
+    return error_messages[idx - 16];
 }

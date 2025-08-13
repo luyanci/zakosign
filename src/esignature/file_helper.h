@@ -21,4 +21,10 @@ uint32_t zako_file_verify_esig(file_handle_t fd, uint32_t flags);
 
 struct zako_esignature* zako_file_read_esig(file_handle_t fd);
 
+/**
+ * Get error message based on verification error code bit field index.
+ * Call this function instead of zako_esign_verrcidx2str to get messages like ZAKO_FV_MMAP_FAILED.
+ */
+const char* zako_file_verrcidx2str(uint8_t idx);
+
 #endif

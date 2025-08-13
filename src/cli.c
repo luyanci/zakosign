@@ -64,7 +64,7 @@ ZakoCommandHandler(root_verify) {
             continue;
         }
 
-        const char* message = zako_esign_verrcidx2str(i);
+        const char* message = zako_file_verrcidx2str(i);
         ConsoleWriteFAIL("  %s", message);
     }
 
