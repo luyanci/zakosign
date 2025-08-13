@@ -1,6 +1,13 @@
 #ifndef ZAKOSIGN_HEADER_PRELUDE_H
 #define ZAKOSIGN_HEADER_PRELUDE_H
 
+#define ZAKO_LIBRARY_VERSION_STRING "1.0"
+/**
+ * Valid version types are:
+ *  'stable', 'staging', 'dev'
+ */
+#define ZAKO_LIBRARY_VERSION_TYPE "staging"
+
 #if __has_include(<unistd.h>)
 #define ZAKO_TARGET_POSIX 1
 #endif

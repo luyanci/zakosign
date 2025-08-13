@@ -17,10 +17,14 @@
 #define SERIAL_RAND_BITS 159
 
 ZakoCommandHandler(root) {
-    ConsoleWrite("zakosign - A ELF signing tool");
-    ConsoleWrite("  -> OpenSSL %s", OPENSSL_VERSION_TEXT);
-    ConsoleWrite("  -> Zako E-Signature %i", ZAKO_ESIGNATURE_VERSION);
-    ConsoleWrite("For help, please use 'zakosign help'")
+    if (ZakoFlagParam("version") || ZakoFlag('v')) {
+        ConsoleWrite("libzakosign: %s-%s (%i)", ZAKO_LIBRARY_VERSION_STRING, ZAKO_LIBRARY_VERSION_TYPE, ZAKO_ESIGNATURE_VERSION);
+        ConsoleWrite("openssl: %s", OPENSSL_VERSION_TEXT);
+    } else {
+        ConsoleWrite("zakosign - A ELF signing tool");
+        ConsoleWrite("For help, please use 'zakosign help'")
+    }
+
     return 0;
 }
 
