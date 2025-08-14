@@ -173,29 +173,35 @@ static uint32_t zako_keychain_verify(struct zako_keychain* kc, struct zako_der_c
         zako_trustchain_add_intermediate_der(chain, l2->data, l2->len);
     }
 
-    int result = zako_trustchain_verify(chain);
-    zako_trustchain_free(chain);
-
-    switch (result) {
+    int x509_v_result = zako_trustchain_verify(chain);
+    uint32_t result = 0;
+    switch (x509_v_result) {
         case X509_V_ERR_CERT_HAS_EXPIRED:
-            return ZAKO_ESV_CERTIFICATE_EXPIRED;
+            result = ZAKO_ESV_CERTIFICATE_EXPIRED;
+            goto exit;
         case X509_V_ERR_CERT_UNTRUSTED:
-            return ZAKO_ESV_UNTRUST_CERTIFICATE_CHAIN;
+            result = ZAKO_ESV_UNTRUST_CERTIFICATE_CHAIN;
+            goto exit;
         default:
-            if (result != X509_V_OK) {
-                return ZAKO_ESV_CERTIFICATE_ERROR;
+            if (x509_v_result != X509_V_OK) {
+                result = ZAKO_ESV_CERTIFICATE_ERROR;
+                goto exit;
             }
 
             EVP_PKEY* expected = X509_get_pubkey(chain->leaf);
             EVP_PKEY* got = zako_parse_public_raw(kc->public_key);
             if (!EVP_PKEY_cmp(expected, got)) {
-                return ZAKO_ESV_CERTKEY_MISMATCH;
+                result = ZAKO_ESV_CERTKEY_MISMATCH;
             }
 
             EVP_PKEY_free(expected);
             EVP_PKEY_free(got);
-            return 0;
+            goto exit;
     }
+
+exit:
+    zako_trustchain_free(chain);
+    return result;
 }
 
 uint32_t zako_esign_verify(struct zako_esignature* esig, uint8_t* buff, size_t len, uint32_t flags) {
@@ -246,6 +252,13 @@ verify_integrity:
     }
 
     EVP_PKEY_free(pubkey);
+
+    uint64_t now = (uint64_t) time(NULL);
+    if (esig->created_at == 0) {
+        result |= ZAKO_ESV_MISSING_TIMESTAMP;
+    } else if (esig->created_at >= now) {
+        result |= ZAKO_ESV_UNTRUSTED_TIMESTAMP;
+    }
 
     return result;
 

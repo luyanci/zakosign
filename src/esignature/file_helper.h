@@ -14,21 +14,17 @@
 #define ZAKO_FV_MMAP_FAILED    (1 << 16)
 #define ZAKO_FV_INVALID_HEADER (1 << 17)
 
-bool zako_file_sign(int fd, EVP_PKEY* key, uint8_t* result, uint8_t* hash);
-bool zako_file_write_esig(int fd, struct zako_esignature* esignature, size_t len);
+bool zako_file_sign(file_handle_t fd, EVP_PKEY* key, uint8_t* result, uint8_t* hash);
+bool zako_file_write_esig(file_handle_t fd, struct zako_esignature* esignature, size_t len);
+
+uint32_t zako_file_verify_esig(file_handle_t fd, uint32_t flags);
+
+struct zako_esignature* zako_file_read_esig(file_handle_t fd);
 
 /**
- * Open path and return fd
+ * Get error message based on verification error code bit field index.
+ * Call this function instead of zako_esign_verrcidx2str to get messages like ZAKO_FV_MMAP_FAILED.
  */
-int zako_file_open_rw(char* path);
-
-/**
- * Copy input path to new and then open new.
- */
-int zako_file_opencopy_rw(char* path, char* new, bool overwrite);
-
-uint32_t zako_file_verify_esig(int fd, uint32_t flags);
-
-struct zako_esignature* zako_file_read_esig(int fd);
+const char* zako_file_verrcidx2str(uint8_t idx);
 
 #endif

@@ -38,6 +38,8 @@ TARGET_CLI := $(BIN_PATH)/$(TARGET_NAME_DYNAMIC)
 
 # src files & obj files
 SRC := utils.c \
+	syscall.c \
+	sys_posix.c \
 	esignature/hasher.c \
 	esignature/file_helper.c \
 	esignature/esignature.c \
