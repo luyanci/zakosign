@@ -32,7 +32,7 @@ jobs:
               id: setup-ndk
               uses: nttld/setup-ndk@v1
               with:
-                ndk-version: r27d
+                ndk-version: r28c
 
             - name: Setup zyclang
               id: zyclang
