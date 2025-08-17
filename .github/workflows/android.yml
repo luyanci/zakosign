@@ -9,6 +9,10 @@ on:
 jobs:
     build_host:
         name: Build cli
+        strategy:
+            fail-fast: false
+            matrix:
+                arch: ["arm64-v8a","x86","armeabi-v7a"]
         runs-on: ubuntu-latest
         steps:
             # clone repo
@@ -45,7 +49,7 @@ jobs:
             - name: Setupdep
               run: |
                 ./tools/setupdep
-                ./tools/setupdep android
+                ./tools/setupdep android ${{ matrix.arch }}
               env:
                 ANDROID_NDK: ${{steps.setup-ndk.outputs.ndk-path}}
 
